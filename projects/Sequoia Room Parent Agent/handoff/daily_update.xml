@@ -1,0 +1,55 @@
+<codexDailyUpdate generated="2025-09-22T05:32:00Z" agent="Codex">
+  <summary>
+    <item>Repo scaffold aligned to spec: prompts, Apps Script stub, MCP config, README prompt directory (`prompts/`, `gas/Code.gs:1`, `mcp/servers.json:1`, `README.md:1`).</item>
+    <item>Live workflow snapshot (`n8n/room-parent-updater.json:1`) captured; workflow renamed to "Room Parent Agent (WIP)" and kept editor-compatible (60-minute trigger until interval-friendly cron replacement is designed).</item>
+    <item>Prompt library expanded with WhatsApp + daily/weekly digests for tone control (`prompts/formatter_whatsapp.txt:1`, `prompts/digest_daily.txt:1`, `prompts/digest_weekly.txt:1`).</item>
+    <item>Approvals HMAC secret stored in workflow static data via helper script (`scripts/set_approvals_secret.sh:1`, node `Store Approvals Secret`).</item>
+    <item>Security scrub complete: replaced real tokens with placeholders (`mcp/servers.json:1`, `servers.json:1`, `Sequioa parent app API keys.md:1`) and added project `.gitignore:1`.</item>
+  </summary>
+
+  <references>
+    <item path="Room Parent Agent Codex Build Spec.md:1">Canonical build spec and guardrails.</item>
+    <item path="Room Parent Agent Project Plan.md:1">Detailed node/architecture expectations + security checklist.</item>
+  </references>
+
+  <workflowState>
+    <workflowId>5FMGLNbKrDBKJaQe</workflowId>
+    <workflowName>Room Parent Agent (WIP)</workflowName>
+    <active>false</active>
+    <nodeCount>18</nodeCount>
+    <lastSnapshot path="n8n/room-parent-updater.json:1">Pulled via REST after secret storage + sanitation.</lastSnapshot>
+    <observations>
+      <item>Prototype chain intact (Gmail/Drive ingestion nodes, Gemini extraction, JSON validation, legacy approval tokens). HMAC secret available but not yet enforced.</item>
+      <item>MCP helper tools still return empty payloads; rely on REST API for workflow operations.</item>
+    </observations>
+  </workflowState>
+
+  <securityAudit>
+    <step status="completed">Replaced real credentials with `${PLACEHOLDER}` strings in `mcp/servers.json:1`, `servers.json:1`, `Sequioa parent app API keys.md:1`.</step>
+    <step status="completed">Added `.gitignore:1` to exclude node_modules, OS cruft, and local secret artifacts.</step>
+    <step status="completed">Scanned repository for known token substrings (`rg "AIza|GOCSPX|Bearer ARwy"`).</step>
+    <step status="pending">Before push, re-run `./scripts/set_approvals_secret.sh` locally post-clone; do not commit outputs or workflow backups containing secrets.</step>
+  </securityAudit>
+
+  <pendingWork>
+    <item priority="P0">Reintroduce 2-hour (08–20 PT) schedule + daily/weekly digests using interval-friendly design compatible with n8n v1.110.1.</item>
+    <item priority="P0">Unify Gmail + Drive ingestion into Gemini extractor (PDF text fallback, lookback cursors) and route into diff pipeline.</item>
+    <item priority="P0">Implement diff/queue logic for Calendar + Snack sheet (Admin tab columns `WhenFound | Type | Summary | SourceLink | ApproveLink | RejectLink | Status`; OpsLog headers `Timestamp | Action | Target | DiffJSON | Actor | SourceLink`).</item>
+    <item priority="P0">Replace token approval flow with HMAC validation leveraging `store.approvalsHmacSecret`.</item>
+    <item priority="P1">Finalize approval UX: Sheets queue population, 24h HMAC email links, wait/resume gating.</item>
+    <item priority="P1">Writebacks: safe snack/calendar upserts with de-dupe + OpsLog logging; WhatsApp draft generation via `prompts/formatter_whatsapp.txt` post-approval.</item>
+    <item priority="P1">Add daily/weekly digest branches once scheduling finalized, using new prompt templates.</item>
+    <item priority="P2">Investigate MCP tool responses (optional) and perform end-to-end dry run with approvals + rollback validation.</item>
+  </pendingWork>
+
+  <concerns>
+    <item>Ingestion/diff pipeline still incomplete; approvals currently unauthenticated tokens.</item>
+    <item>Need backward-compatible scheduling approach before enabling production cadence.</item>
+  </concerns>
+
+  <nextRecommendedSteps>
+    <item>Design 2-hour + digest scheduling using interval trigger + conditional gating for v1.110.1.</item>
+    <item>Implement ingestion → diff → approval refactor, wiring HMAC validation.</item>
+    <item>Keep `.gitignore` and sanitized placeholders intact prior to Git push.</item>
+  </nextRecommendedSteps>
+</codexDailyUpdate>

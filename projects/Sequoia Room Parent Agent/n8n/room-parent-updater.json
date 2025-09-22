@@ -1,0 +1,640 @@
+{
+  "createdAt": "2025-09-13T02:57:43.030Z",
+  "updatedAt": "2025-09-22T05:17:22.046Z",
+  "id": "5FMGLNbKrDBKJaQe",
+  "name": "Room Parent Agent (WIP)",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bb16e4e2-ef6c-431b-9887-47260a46a190",
+              "name": "text",
+              "value": "Subject: TRIS Newsletter - Sep 15 Parent Night Oct 2, 6:00–7:30pm at Library. Snack next week (Sep.29–Oct. 3) Devraj Gambino. Allergies: add Egg; remove Milk.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -160,
+        440
+      ],
+      "id": "4a517620-12bb-48ed-ae71-fdc6a88d92c0",
+      "name": "Sample Text"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Extract ONLY facts stated in the input. Output STRICT JSON:\n{\n  \"events\":[{\"op\":\"upsert|cancel\",\"title\":\"\",\"start\":\"\",\"end\":\"\",\"location\":\"\",\"notes\":\"\",\"source\":\"email|pdf\",\"source_url\":\"\"}],\n  \"snack_changes\":[{\"week_text\":\"\",\"child\":\"\",\"note\":\"\"}],\n  \"allergy_changes\":[{\"op\":\"add|remove\",\"item\":\"\"}],\n  \"notices\":[{\"type\":\"reminder\",\"text\":\"\",\"source_url\":\"\"}]\n}\nRules:\n- Use ISO 8601 datetimes when explicit (else leave empty).\n- For snack, preserve the original week text verbatim.\n- If not explicit, omit or leave empty. No extra keys. No trailing commas.\n\nInput:\n{{$json.text}}\n",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        64,
+        -144
+      ],
+      "id": "a8ec8102-9b5e-4b1b-832a-02f4ce12eaa7",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        136,
+        80
+      ],
+      "id": "4e805de0-69e9-465f-95e9-cd7bbbceb03a",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "1KSrJ3dYH94nVSPY",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1) Find the model's text, no matter where n8n put it\nfunction findText(obj) {\n  if (typeof obj === 'string') return obj;\n\n  const picks = [];\n  const push = v => { if (typeof v === 'string' && v.trim()) picks.push(v); };\n\n  // Common paths across n8n LLM builds\n  push(obj.text);\n  push(obj.output_text);\n  push(obj.data);\n  push(obj.completion);\n  push(obj.output);\n  if (obj.message?.text) push(obj.message.text);\n  if (Array.isArray(obj.messages) && obj.messages[0]?.text) push(obj.messages[0].text);\n\n  // Gemini raw candidates shape (safely join parts)\n  try {\n    const parts = obj.candidates?.[0]?.content?.parts || [];\n    const joined = parts.map(p => p.text).filter(Boolean).join('\\n');\n    push(joined);\n  } catch (e) {}\n\n  // Sometimes the payload is nested under data.*\n  if (obj.data && typeof obj.data === 'object') {\n    push(obj.data.text);\n    push(obj.data.output_text);\n    push(obj.data.completion);\n  }\n\n  // Fallback: stringify the whole thing so we can try to carve JSON out\n  return picks[0] ?? JSON.stringify(obj);\n}\n\n// 2) Clean the string and extract the JSON substring\nfunction extractJsonString(s) {\n  s = String(s ?? '').trim();\n  // Strip ```json fences if the model added them\n  s = s.replace(/^```(?:json)?\\s*/i, '').replace(/```$/i, '').trim();\n  // If not starting with {, try to slice first {...} block\n  if (!s.startsWith('{')) {\n    const i = s.indexOf('{');\n    const j = s.lastIndexOf('}');\n    if (i !== -1 && j !== -1 && j > i) s = s.slice(i, j + 1);\n  }\n  return s;\n}\n\nconst rawText = findText($json);\nconst jsonStr = extractJsonString(rawText);\n\nlet parsed;\ntry {\n  parsed = JSON.parse(jsonStr);\n} catch (e) {\n  throw new Error(\n    'Could not parse JSON from model output.\\n' +\n    'First 400 chars were:\\n' + (rawText || '').slice(0, 400)\n  );\n}\n\n// 3) Minimal schema checks\n['events', 'snack_changes', 'allergy_changes', 'notices'].forEach(k => {\n  if (k in parsed && !Array.isArray(parsed[k])) {\n    throw new Error(`Field ${k} must be an array. Got: ${typeof parsed[k]}`);\n  }\n});\n\nreturn [{ json: parsed }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        -144
+      ],
+      "id": "33576326-d828-48c4-8afc-b6743aae0be4",
+      "name": "Validate JSON"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1A-z6pGIFbGWJUlyP4UxgTdGVXNvmZlFsg3QsIxTR3QE",
+          "mode": "list",
+          "cachedResultName": "TRIS Sequioa 2025-26 Snack Week Schedule",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1A-z6pGIFbGWJUlyP4UxgTdGVXNvmZlFsg3QsIxTR3QE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1757054650,
+          "mode": "list",
+          "cachedResultName": "Allergies",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1A-z6pGIFbGWJUlyP4UxgTdGVXNvmZlFsg3QsIxTR3QE/edit#gid=1757054650"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        416,
+        104
+      ],
+      "id": "4d5de907-eece-484a-96b6-41d6e86a3b9c",
+      "name": "Allergy Rows",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "opmsUZ0EOPU1PD9R",
+          "name": "gsheets-rpu"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1A-z6pGIFbGWJUlyP4UxgTdGVXNvmZlFsg3QsIxTR3QE",
+          "mode": "list",
+          "cachedResultName": "TRIS Sequioa 2025-26 Snack Week Schedule",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1A-z6pGIFbGWJUlyP4UxgTdGVXNvmZlFsg3QsIxTR3QE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Snack Week Schedule",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1A-z6pGIFbGWJUlyP4UxgTdGVXNvmZlFsg3QsIxTR3QE/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        416,
+        296
+      ],
+      "id": "54f76794-bc2c-46df-8f6b-df2ebe01dca5",
+      "name": "Snack Week Schedule",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "opmsUZ0EOPU1PD9R",
+          "name": "gsheets-rpu"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "7517dd2443c38f31e858f6a544c3e2d9f945811fe970225fb3fe1fe0c180e4e9@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "TRIS 2025-26"
+        },
+        "returnAll": true,
+        "timeMin": "={{ new Date(new Date().setHours(0,0,0,0)).toISOString() }}",
+        "timeMax": "={{ new Date(Date.now() + 60*24*60*60*1000).toISOString() }}",
+        "options": {
+          "recurringEventHandling": "expand",
+          "timeZone": {
+            "__rl": true,
+            "value": "America/Los_Angeles",
+            "mode": "list",
+            "cachedResultName": "America/Los_Angeles"
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        416,
+        584
+      ],
+      "id": "a973010a-3015-477f-a2a7-411ba7753be2",
+      "name": "TRIS 2025-26 Next 60-days",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "y75XdoGS3DwHvZi1",
+          "name": "gcal-rpu"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=mimeType='application/pdf' and trashed=false",
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "https://drive.google.com/drive/folders/1qTyWfUutcNqkQYdyVXE00APdO7PJZJSC",
+            "mode": "url"
+          }
+        },
+        "options": {
+          "fields": [
+            "id",
+            "webViewLink",
+            "name"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -160,
+        -336
+      ],
+      "id": "cc9d0999-e9c3-4420-bde8-bed702fb8c03",
+      "name": "Current Month Teachers PDF Updates",
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "3Mlbk1EdQh6pn35w",
+          "name": "gdrive-rpu"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 25,
+        "filters": {
+          "includeSpamTrash": false,
+          "q": "=(newer_than:14d) (\n  from:communications@therenaissanceschool.org\n  OR replyto:communications@therenaissanceschool.org\n  OR subject:\"TRIS Newsletter -\"\n  OR cc:parents-sequoia@therenaissanceschool.org\n  OR from:katrinar@therenaissanceschool.org\n  OR subject:\"Sequoia Update for\"\n)\n"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -160,
+        -144
+      ],
+      "id": "807f9a53-bf21-442a-9340-5a699a271d3a",
+      "name": "Get Teacher Emails",
+      "webhookId": "3c1b0a8e-b160-4409-8aef-97f9dfef5582",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "bmxgWt0gSJhngHjY",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// === Helpers ===============================================================\nfunction parseWeekRange(weekText) {\n  const months = {'Jan.':0,'Feb.':1,'Mar.':2,'Apr.':3,'May':4,'Jun.':5,'Jul.':6,'Aug.':7,'Sep.':8,'Sept.':8,'Oct.':9,'Nov':10,'Dec.':11};\n  const cleaned = String(weekText||'').replace(/\\(.+?\\)/g,'').replace(/\\s+/g,' ').trim();\n  const m = cleaned.match(/([A-Za-z]{3,}\\.?)\\s*(\\d{1,2})\\s*[-–]\\s*([A-Za-z]{3,}\\.?)?\\s*(\\d{1,2})/);\n  if (!m) return null;\n  const m1 = (m[1].replace(/\\.$/,'') + '.'); const d1 = +m[2];\n  const m2 = m[3] ? (m[3].replace(/\\.$/,'') + '.') : m1; const d2 = +m[4];\n  const year = new Date().getFullYear();\n  const start = new Date(year, months[m1], d1);\n  const end   = new Date(year, months[m2], d2, 23,59,59);\n  return (isNaN(start)||isNaN(end)) ? null : { start, end };\n}\n\n// Collect items from ALL connected inputs (0..7) and flatten\nconst allItems = [];\nfor (let i = 0; i < 8; i++) {\n  try { allItems.push(...$items(i).map(it => it.json)); } catch (_) {}\n}\n\n// Nothing came in?\nif (!allItems.length) {\n  return [{ json: { error: 'No inputs reached this node. Run the whole workflow (not just this step), or add a Merge (wait for both).' } }];\n}\n\n// Classify every item by shape (no assumptions about order or counts)\nlet extractor = null;\nconst calendar = [];\nconst snackRows = [];\nconst allergyRows = [];\n\nfor (const obj of allItems) {\n  if (!obj || typeof obj !== 'object') continue;\n\n  // Extractor JSON (has the 4 arrays)\n  if (!extractor && 'events' in obj && 'snack_changes' in obj && 'allergy_changes' in obj) {\n    extractor = obj;\n    continue;\n  }\n\n  // Calendar event (summary/id plus start/end)\n  if ((obj.summary || obj.id) && (obj.start || obj.end)) {\n    calendar.push(obj);\n    continue;\n  }\n\n  // Sheets rows\n  if ('Week' in obj || 'Child' in obj) snackRows.push(obj);\n  if ('Allergy' in obj) allergyRows.push(obj);\n}\n\nif (!extractor) {\n  // Helpful debug: show the first item keys we saw\n  return [{\n    json: {\n      error: 'Extractor JSON missing',\n      hint: 'Ensure the output of \"Validate JSON\" is connected into the Merge that feeds this node.',\n      sawItems: allItems.slice(0,3).map(o => Object.keys(o))\n    }\n  }];\n}\n\n// Map snack rows -> [{week, child, range, ...}]\nconst snack = snackRows\n  .map(r => ({ week: String(r.Week ?? '').trim(), child: String(r.Child ?? '').trim() }))\n  .filter(r => r.week);\n\nconst validSnack = snack\n  .filter(r => r.child && !/SCHOOL CLOSED|NO INSTRUCTION/i.test(r.week))\n  .map(r => ({ ...r, range: parseWeekRange(r.week) }));\n\n// Compute \"next Monday\" assignee\nconst today = new Date();\nconst nextMon = new Date(today);\nnextMon.setDate(today.getDate() + ((8 - today.getDay()) % 7));\n\nconst nextSnack = validSnack.find(r => r.range && nextMon >= r.range.start && nextMon <= r.range.end) || null;\n\n// Build snack change proposals\nconst snackChanges = (extractor.snack_changes || []).map(ch => {\n  const weekText = String(ch.week_text || '').replace(/\\s+/g,' ').trim();\n  let target = snack.find(r => r.week.replace(/\\s+/g,' ').trim() === weekText);\n\n  if (!target && weekText) {\n    const parsed = parseWeekRange(weekText);\n    if (parsed) target = validSnack.find(r => r.range && r.range.start.getTime() === parsed.start.getTime());\n  }\n  return { type: 'snack', targetWeek: target?.week || ch.week_text || '', newChild: ch.child || '' };\n});\n\n// Allergy set-diff (class-wide list)\nconst adds    = (extractor.allergy_changes || []).filter(x => x.op === 'add').map(x => x.item);\nconst removes = (extractor.allergy_changes || []).filter(x => x.op === 'remove').map(x => x.item);\n\nreturn [{\n  json: {\n    nextSnack,\n    calendar,\n    proposed: {\n      events: extractor.events || [],\n      snack: snackChanges,\n      allergies: { adds, removes }\n    },\n    debug: {\n      counts: { allItems: allItems.length, calendar: calendar.length, snackRows: snackRows.length, allergyRows: allergyRows.length }\n    }\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        200
+      ],
+      "id": "e6a1a91e-fb7f-4836-a6e1-55ab440ddb24",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "path": "=room-parent/approve",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -608,
+        -560
+      ],
+      "id": "af3934fc-cec5-450e-ada2-179783d0edd3",
+      "name": "Approve",
+      "webhookId": "c06eae16-d03c-43c6-8f82-093de279ae86"
+    },
+    {
+      "parameters": {
+        "path": "=room-parent/reject",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -608,
+        808
+      ],
+      "id": "adfc1987-0c67-4306-b701-debab6e3faeb",
+      "name": "Reject",
+      "webhookId": "c06eae16-d03c-43c6-8f82-093de279ae86"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Use workflow static data as a tiny KV store\nconst store = $getWorkflowStaticData('global');\nstore.pending = store.pending || {};  // id -> { created, execId }\n\nfunction makeToken(execId, ttlHours=72) {\n  const token = (Math.random().toString(36).slice(2) + Date.now().toString(36));\n  store.pending[token] = { created: Date.now(), execId, exp: Date.now() + ttlHours*3600*1000 };\n  return token;\n}\n\nconst execId = $execution.id; // current execution id\nconst token = makeToken(execId);\n\nconst approveUrl = `${$execution.resumeUrl}`.replace('/webhook-waiting/', '/webhook/')  // ensure /webhook/ base\n  .replace(/\\/[^/]*$/, '/room-parent/approve') + `?token=${encodeURIComponent(token)}`;\nconst rejectUrl = approveUrl.replace('/approve', '/reject');\n\nreturn [{ json: { approveUrl, rejectUrl, token } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -384,
+        -144
+      ],
+      "id": "522a0d1c-e6a2-4298-9c0e-1450357384b0",
+      "name": "Make Approval Links"
+    },
+    {
+      "parameters": {
+        "jsCode": "const store = $getWorkflowStaticData('global');\nconst token = $json.query.token;\nconst entry = token && store.pending && store.pending[token];\nif (!entry) throw new Error('Invalid token');\nif (Date.now() > entry.exp) { delete store.pending[token]; throw new Error('Token expired'); }\n\n// Mark approved and pass the execId to the next node\nconst execId = entry.execId;\ndelete store.pending[token];\nreturn [{ json: { approved: true, execId } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -384,
+        -560
+      ],
+      "id": "2e3333ed-8588-413c-a13c-05833f8f6abb",
+      "name": "Validate Token - Approve"
+    },
+    {
+      "parameters": {
+        "jsCode": "const store = $getWorkflowStaticData('global');\nconst token = $json.query.token;\nconst entry = token && store.pending && store.pending[token];\nif (!entry) throw new Error('Invalid token');\nif (Date.now() > entry.exp) { delete store.pending[token]; throw new Error('Token expired'); }\n\n// Mark rejected and pass the execId to the next node\nconst execId = entry.execId;\ndelete store.pending[token];\nreturn [{ json: { rejected: true, execId } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -384,
+        808
+      ],
+      "id": "a4bac3b2-2ac4-4bec-ab59-d65a8da10bf8",
+      "name": "Validate Token - Reject"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 60
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -608,
+        148
+      ],
+      "id": "51ba2158-8c0e-4735-8705-e3972420d60c",
+      "name": "60 minute trigger"
+    },
+    {
+      "parameters": {
+        "numberInputs": 4
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        640,
+        168
+      ],
+      "id": "254a3ad9-e9bf-47c6-b072-536903c8997a",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = typeof $json.body === 'object' && $json.body !== null ? $json.body : $json\nconst secret = typeof data.secret === 'string' ? data.secret.trim() : ''\nif (!secret) {\n  throw new Error('Missing secret in request body (expected JSON {\"secret\":\"...\"})')\n}\nconst store = $getWorkflowStaticData('global')\nstore.approvalsHmacSecret = secret\nreturn [{ json: { status: 'stored' } }]\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -608,
+        -560
+      ],
+      "id": "aa57aea8-bbdb-49a0-8937-9cdb2351b424",
+      "name": "Store Approvals Secret"
+    }
+  ],
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sample Text": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Validate JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate JSON": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get Teacher Emails": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Current Month Teachers PDF Updates": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TRIS 2025-26 Next 60-days": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Snack Week Schedule": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Allergy Rows": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Make Approval Links": {
+      "main": [
+        [
+          {
+            "node": "Get Teacher Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve": {
+      "main": [
+        [
+          {
+            "node": "Validate Token - Approve",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reject": {
+      "main": [
+        [
+          {
+            "node": "Validate Token - Reject",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        []
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Digest Schedule": {
+      "main": [
+        [
+          {
+            "node": "Daily Digest Prep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Digest Schedule": {
+      "main": [
+        [
+          {
+            "node": "Weekly Digest Prep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Main Poll Schedule": {
+      "main": [
+        [
+          {
+            "node": "Sample Text",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Make Approval Links",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Current Month Teachers PDF Updates",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Allergy Rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Snack Week Schedule",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "TRIS 2025-26 Next 60-days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "e86b89a3-0631-410b-a945-f0772bc48c71",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-09-13T02:57:43.044Z",
+      "updatedAt": "2025-09-13T02:57:43.044Z",
+      "role": "workflow:owner",
+      "workflowId": "5FMGLNbKrDBKJaQe",
+      "projectId": "gc4v0QeIzo0lBMss",
+      "project": {
+        "createdAt": "2025-09-13T02:54:47.943Z",
+        "updatedAt": "2025-09-13T02:55:24.000Z",
+        "id": "gc4v0QeIzo0lBMss",
+        "name": "Room-Parent Updater (Sequoia)",
+        "type": "team",
+        "icon": {
+          "type": "icon",
+          "value": "layers"
+        },
+        "description": "Agent for room parent updates for Sequoia Class 2025-26",
+        "projectRelations": [
+          {
+            "createdAt": "2025-09-13T02:55:24.796Z",
+            "updatedAt": "2025-09-13T02:55:24.796Z",
+            "userId": "63eede8c-9852-40db-8062-bdaaca9f5ba4",
+            "projectId": "gc4v0QeIzo0lBMss",
+            "user": {
+              "createdAt": "2025-08-03T03:07:49.557Z",
+              "updatedAt": "2025-09-22T05:13:44.000Z",
+              "id": "63eede8c-9852-40db-8062-bdaaca9f5ba4",
+              "email": "david.shein@gmail.com",
+              "firstName": "David",
+              "lastName": "Shein",
+              "personalizationAnswers": null,
+              "settings": {
+                "userActivated": false,
+                "easyAIWorkflowOnboarded": true,
+                "dismissedCallouts": {
+                  "preBuiltAgentsModalCallout": true
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-09-21",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": []
+}
