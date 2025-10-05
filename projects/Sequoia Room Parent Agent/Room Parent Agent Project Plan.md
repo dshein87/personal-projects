@@ -193,6 +193,8 @@ NOTIFY_EMAIL=<david@example.com>
 
 ## 6) Apps Script (optional Q&A micro-API)
 
+Updated sidebar helper (`gas/Code.gs`) reads the Admin tab Token column, signs `{token, action, ts}` with the shared secret, and posts JSON `{token, action, ts, actor, rowNumber, ...}` to `/approve` or `/reject` with the `X-Signature` header.
+
 > We will finalize logic after you confirm the exact formats in `Week` and `Allergies`. The snippet below shows placeholders and guards to avoid wrong matches.
 
 ```js
@@ -319,3 +321,106 @@ function doGet(e) {
 - Verify `Sequioa parent app API keys.md` contains placeholders only before sync.
 - Review n8n credentials and workflow static data for stray secrets prior to GitHub pushes.
 - Run `./scripts/set_approvals_secret.sh` post-clone to inject secrets locally (never commit outputs).
+
+### 4A) Node Diff Blueprint (2025-09-22 build push)
+
+**Trigger & run control**
+- `Main Poll Schedule` — Schedule Trigger with cron `0 8-20/2 * * *`, timezone `America/Los_Angeles`; retains 2-hour cadence. Guard with new `In Window?` Code node that skips execution if local time drift falls outside 08:00–20:00 PT.
+- `Daily Digest Schedule` — Cron `0 18 * * *`, timezone `America/Los_Angeles`; routes into digest branch.
+- `Weekly Digest Schedule` — Cron `0 18 * * SUN`, timezone `America/Los_Angeles`; feeds weekly summary branch.
+- `Set Run Context` (new Code) — loads/stores `$getWorkflowStaticData('global')` keys `lastPollTs`, `lastDriveCursor`, `lastDigestTs` to ensure idempotent lookbacks. Emits `poll_start`, `poll_end`, and `lookback_start` for downstream queries.
+
+**Ingestion lane**
+- `Gmail Search` (existing node rename) — update query to documented boolean filter, set `Return All` + `Limit` 50, enable `Include Attachments` to capture PDFs. Pass results through `Gmail Message ➜ Text` Code node to normalize subject/body/plain text and collect file metadata for source links.
+- `Drive PDF List` — Google Drive node using query `'${GOOGLE_DRIVE_FOLDER_ID}' in parents and mimeType='application/pdf' and modifiedTime > {{$json.poll_start}}`; pair with `Drive Download` + `PDF ➜ Text` (Binary to Text) chain. On OCR failure, branch to Google Vision or fallback `PDF Parser` (n8n community) with safe guard.
+- `Merge Ingestion` — Merge node (`Wait for Both`) to combine Gmail-derived JSON and Drive text payloads, each annotated with `{source: "email"|"pdf", source_url, raw_text}`.
+- `LLM Extract` — keep `Basic LLM Chain` but point prompt to repo file path `prompts/extractor.txt`; add upstream `Set Prompt` node to read prompt via HTTP Request (GitHub raw) when running in cloud, with fallback inline text.
+- `Validate JSON` — extend existing Code to attach `source_url`, `source_type`, and unique `item_id` (hash of title/week) onto each extracted record for diffing.
+
+**Current state readers**
+- `Calendar Fetch` — rename `TRIS 2025-26 Next 60-days` to `Calendar Snapshot`; configure timeframe `from poll_start` to `poll_end + 60d`, `singleEvents=true`, `timeZone=America/Los_Angeles`.
+- `Snack Sheet` — existing Google Sheets node reads `Snack Week Schedule`; add `Range Mode: All` and ensure header mapping to `Week`, `Child`.
+- `Allergy Sheet` — keep read-only; map rows to `{row_index, text}` for notice surface.
+- `OpsLog Sheet` (new) — optional read to compute metrics for digests.
+
+**Diff & queue builder**
+- `Compile Current State` — Code node ingests extractor payload + calendar/snack/allergy snapshots and emits `{ meta, current, proposed, debug }`. Current arrays include `dedupe_key`/`week_key` hints; proposed entries inherit extractor metadata plus normalized `source_refs` and ISO datetimes.
+- `Compute Diffs` — Code node compares `proposed` vs `current` and surfaces structured diff payload: requires no downstream branching until approvals are ready.
+  - `calendar_actions[]`: `{scope:'calendar', op:'upsert'|'cancel', summary, start_iso, end_iso?, location?, description?, audience?, event_id?, dedupe_key, source_refs?, approval_token, hmac_payload, admin_row, diff?}`
+  - `snack_actions[]`: `{scope:'snack', op:'assign'|'clear', week_key, week_label, row_index?, prior_child?, new_child?, note?, source_refs?, approval_token, hmac_payload, admin_row}`
+  - `allergy_changes[]` pass-through + `allergy_summary` counts for read-only displays; `notices[]` forwarded untouched.
+  - `admin_rows[]` (rich objects) and `admin_sheet_rows[]` (flat rows) feed the queue writer in A3.
+  - Persists static data via `$getWorkflowStaticData('global').pendingApprovals` and logs `[Compute Diffs] preview …` JSON for downstream agents.
+- `Build Admin Queue Rows` — deferred Sheets append; A3 will consume `admin_sheet_rows` to populate the Admin tab once HMAC links exist.
+- `Persist Pending Items` — handled inside `Compute Diffs`; tokens hashed deterministically to prevent duplicate approvals and stale entries (>30d) trimmed from static data.
+
+#### Diff payload contract (A2→A3/A4)
+- `Compute Diffs` emits a single item with top-level keys `meta`, `calendar_actions`, `snack_actions`, `allergy_changes`, `allergy_summary`, `notices`, `admin_rows`, `admin_sheet_rows`, `pending_tokens`, and `debug`.
+- `meta` includes `diff_generated_at_iso`, `pending_count`, and run-context echoes (`poll_start_iso`, `poll_end_iso`, `tz`).
+- Each `calendar_actions[]` entry carries the fields listed above plus `admin_summary`/`admin_detail` for queue display.
+- Each `snack_actions[]` entry carries `admin_summary`, `admin_detail`, and row targeting hints (`week_key`, `row_index`).
+- `admin_rows[]` objects: `{token, scope, type, when_found_iso, summary, detail?, source_url?, source_type?, dedupe_key, status, hmac_payload}`. Use these for in-memory queue cards (sidebar, email, digests).
+- `admin_sheet_rows[]` objects already align to the Admin sheet schema (`WhenFound`, `Type`, `Summary`, `Detail`, `SourceLink`, `SourceType`, `Status`, `Token`, `DedupeKey`, `Action`, `ProcessedAt`, `Actor`).
+- `$getWorkflowStaticData('global').pendingApprovals` maps tokens → `{token, scope, op, dedupe_key, created_at, hmac_payload, admin_row, apply, source_refs?, meta}` for webhook lookups.
+- QA fixtures: ingestion outputs at `handoff/ingestion_sample.json`, `handoff/ingestion_sample_allergy.json`, `handoff/ingestion_sample_notices.json`; diff previews at `handoff/diff_sample.json`, `handoff/diff_sample_allergy.json`, `handoff/diff_sample_notices.json`. Use these for offline validation before hitting live credentials.
+
+**Approval surfaces**
+- `Prepare Approval Links` — replace `Make Approval Links` with Code node that loads `approvalsHmacSecret` from static data, uses `crypto.createHmac('sha256', secret)` to sign `{token, action, ts}`. Outputs approve/reject URLs plus `X-Signature` header value for email + Sheets sidebar use.
+- `Queue Sheet Upsert` — Google Sheets `Update/Append` populates Admin tab columns `WhenFound | Type | Summary | SourceLink | ApproveLink | RejectLink | Status | Token`. Runs before webhook wait so humans have queue view.
+  - `Validate HMAC` Code node verifies the `X-Signature` header (`sha256=...`) and rejects payloads older than 24 hours before routing to approve/reject handlers.
+  - `Make Approval Links` consumes `Compute Diffs` `admin_rows`, reuses the deterministic approval tokens, updates `store.pendingApprovals`, and emits `admin_sheet_rows_signed` plus `approvals.items` with signed URLs/headers (24h TTL) for Sheets/email/Raycast surfaces.
+  - Daily approval digest template (`prompts/approvals_daily_email.html`) renders signed URLs, header values, and curl fallbacks for each pending item.
+- `Email Approval Digest` — Gmail Send node generating HTML with per-item approve/reject buttons (signed query params) + fallback instructions.
+- `Wait for Approval` — Wait node keyed on `approval_token`; stored resume URLs feed into webhook responses.
+- `Approve Webhook` / `Reject Webhook` — enforce HMAC: new Code node `Validate HMAC` recalculates signature over JSON body `{action, token, actor, ts}` and compares constant-time. On success, load pending diff payload and route to apply/reject branches. Reject branch updates Admin row status + logs to OpsLog without writes.
+- **Approval QA checklist** — cover (1) happy-path approve (signature + pending lookup), (2) reject path, (3) stale/expired timestamp (24h), (4) tampered signature, and (5) unknown token to ensure webhook returns 404 + pending map untouched. Track scenarios in `handoff/approval_test_checklist.md`.
+
+**Apply & notifications**
+- `Apply Snack` — Sheets Update node selects row by `Week`; uses `IF` to guard duplicates and writes `Child`. Maintains `OpsLog` entry via `Append` with diff JSON.
+- `Apply Calendar` — Google Calendar node chooses between Create/Update using `event_id` when provided; ensures `singleEvents=true` and writes `location`, `description`, `reminders` per spec. Cancel operations call dedicated Delete node but log first.
+- `Assemble WhatsApp Draft` — Code node merges approved actions into JSON for LLM; `LLM WhatsApp` uses `prompts/formatter_whatsapp.txt` and stores result in static data + Admin sheet column for copy.
+- `OpsLog Append` — Append row `{Timestamp, Actor, Scope, Action, TargetKey, SourceToken, SourceLink, DiffJSON}` for every approve/reject/apply branch; retain `approval_token` so we can reconcile with pending state during audits.
+- `Update Admin Status` — Sheets Update sets `Status` to `Approved`/`Rejected`, `ProcessedAt`, `Actor`.
+- `Notify` — Gmail / Slack optional nodes; ensure manual send instructions.
+
+**Digests**
+- `Daily Digest Prep` — Reads pending + approved stats (last 24h) from static data / OpsLog, generates context object.
+- `Daily Digest LLM` — uses `prompts/digest_daily.txt`; output emailed to notify list + appended to Admin tab.
+- `Weekly Digest Prep` / `Weekly Digest LLM` — similar using 7-day metrics + `prompts/digest_weekly.txt`.
+
+**Cleanup & resilience**
+- `Persist Cursors` — Code node writes back `lastPollTs`, `lastDriveCursor`, `lastDigestTs` after successful run.
+- `Error Handler` — Execute workflow on failure: marks Admin queue (if any) with error, sends alert, keeps static data intact to retry.
+- `Disable Legacy Nodes` — remove `Sample Text`, token validators, and unused Merge connectors once new lanes confirmed.
+
+This blueprint will drive the MCP diff plan: each bullet maps to explicit node adds/updates/removals before we request `Call_WF_diff_preview_`.
+
+### 4B) MCP access fallback (2025-09-22)
+If MCP tooling in Codex CLI fails to locate credentials, switch to direct n8n REST calls using the public API key + bearer token:
+
+1. Store secrets in gitignored files (`.env.local`, `mcp/servers.local.json`) so they never enter the repo.
+2. Export the live workflow with `curl`:
+   ```bash
+   curl -sS -H "Authorization: Bearer ${MCP_N8N_BEARER}" \
+        -H "X-N8N-API-KEY: ${N8N_API_KEY}" \
+        "https://dshein.app.n8n.cloud/api/v1/workflows/5FMGLNbKrDBKJaQe" \
+        > n8n/room-parent-updater.json
+   ```
+3. Apply diffs by PATCHing the workflow payload back through the same endpoint once reviewed.
+4. Restore `mcp/servers.json` / `servers.json` to placeholder form before committing to keep the repo sanitized.
+
+Log each use of the fallback (time, reason, actions) in `handoff/daily_plan.xml` and `handoff/daily_update.xml` so the trail remains auditable.
+
+### 4C) Multi-Agent execution (2025-09-22)
+- Canonical instructions live in `Multi-Agent Playbook.md` (roles C0/A1–A4, branch etiquette, test gates, error playbook).
+- When running multiple agents, Coordinator (C0) maintains `<meta>` blocks inside `handoff/daily_plan.xml` and `handoff/daily_update.xml`.
+- Each agent must log milestones in both handoff files and keep Section 4A updates aligned with their deliverables.
+- Follow Section 4B for MCP fallback whenever workspace credentials are missing.
+- Before merging to `main`, sanitize `mcp/servers.json` / `servers.json` back to placeholder values and confirm secret sweep.
+
+**Active sprint assignments (2025-09-22)**
+- C0 (Coordinator) — branch `ds-c0-20250922`; tracking A4 launch, maintaining handoff meta, and coordinating integrated QA.
+- A1 (Ingestion) — branch `rp/a1-20250922`; ingestion rebuild + fixtures complete, monitoring for post-approval adjustments.
+- A2 (Diff & Queue) — branch `rp/a2-20250922`; diff outputs + OpsLog expectations documented, standing by during writeback integration.
+- A3 (Approvals & HMAC) — branch `rp/a3-20250922`; HMAC webhooks/links validated, handed off notes + fixtures to A4.
+- A4 (Writebacks & Messaging) — branch `rp/a4-20250922`; wiring complete, coordinating dry-run (Sheets/Calendar), verifying queue/OpsLog/Calendar outputs, preparing workflow export, and swapping the placeholder Slack webhook.

@@ -3,7 +3,7 @@
     {
       "name": "n8n-cloud",
       "transport": "sse",
-      "url": "${MCP_N8N_BASE_URL}" ,
+      "url": "${MCP_N8N_BASE_URL}",
       "headers": {
         "Authorization": "Bearer ${MCP_N8N_BEARER}"
       }

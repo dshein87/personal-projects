@@ -1,0 +1,188 @@
+[
+  {
+    "json": {
+      "meta": {
+        "generated_at_iso": "2025-09-22T21:30:09.319Z",
+        "tz": "America/Los_Angeles",
+        "poll_start_iso": "2025-09-28T16:00:00.000Z",
+        "poll_end_iso": "2025-09-28T18:00:00.000Z",
+        "lookback_start_iso": "2025-09-27T16:00:00.000Z",
+        "lookback_end_iso": "2025-09-28T18:00:00.000Z"
+      },
+      "current": {
+        "calendar": [
+          {
+            "event_id": "event-abc",
+            "summary": "Snack Prep",
+            "start_iso": "2025-10-01T18:00:00.000Z",
+            "end_iso": "2025-10-01T19:00:00.000Z",
+            "all_day": false,
+            "html_link": "https://calendar.google.com/event?eid=event-abc",
+            "dedupe_key": "snack-prep|2025-10-01T18:00",
+            "source_refs": [
+              {
+                "url": "https://calendar.google.com/event?eid=event-abc",
+                "type": "calendar",
+                "item_id": "event-abc"
+              }
+            ],
+            "raw": {
+              "id": "event-abc",
+              "summary": "Snack Prep",
+              "start": {
+                "dateTime": "2025-10-01T18:00:00.000Z"
+              },
+              "end": {
+                "dateTime": "2025-10-01T19:00:00.000Z"
+              },
+              "htmlLink": "https://calendar.google.com/event?eid=event-abc"
+            }
+          }
+        ],
+        "snacks": [
+          {
+            "week_label": "Week of October 6",
+            "week_key": "2025-10-06",
+            "child": "Maya",
+            "range": {
+              "start_iso": "2025-10-06T00:00:00.000Z",
+              "end_iso": "2025-10-06T23:59:59.000Z"
+            },
+            "row_index": 4,
+            "raw": {
+              "Week": "Week of October 6",
+              "Child": "Maya",
+              "rowIndex": 4
+            }
+          }
+        ],
+        "allergies": [
+          {
+            "text": "Javier — Dairy (moderate)",
+            "raw": {
+              "Allergy": "Javier — Dairy (moderate)"
+            }
+          }
+        ],
+        "opslog": []
+      },
+      "proposed": {
+        "events": [
+          {
+            "index": 0,
+            "op": "upsert",
+            "summary": "Picture Day",
+            "start_iso": "2025-10-07T16:00:00.000Z",
+            "end_iso": "2025-10-07T17:30:00.000Z",
+            "location": "Courtyard",
+            "description": "Picture day for Sequoia class",
+            "audience": "Families",
+            "dedupe_key": "picture-day|2025-10-07T16:00",
+            "item_id": "6b4cc8b599295e07d23887430fc065e082f30894",
+            "source_refs": [
+              {
+                "url": "https://mail.google.com/mail/u/0/#inbox/187ad999cafeabcd",
+                "type": "email",
+                "item_id": "6b4cc8b599295e07d23887430fc065e082f30894",
+                "label": "Sequoia Health Update - September 28"
+              }
+            ],
+            "raw": {
+              "op": "upsert",
+              "title": "Picture Day",
+              "start_iso": "2025-10-07T16:00:00.000Z",
+              "end_iso": "2025-10-07T17:30:00.000Z",
+              "location": "Courtyard",
+              "description": "Picture day for Sequoia class",
+              "audience": "Families",
+              "source_type": "email",
+              "source_url": "https://mail.google.com/mail/u/0/#inbox/187ad999cafeabcd",
+              "source_id": "187ad999cafeabcd@google.com",
+              "source_subject": "Sequoia Health Update - September 28",
+              "ingested_at": "2025-09-28T17:45:00.000Z",
+              "item_id": "6b4cc8b599295e07d23887430fc065e082f30894"
+            }
+          }
+        ],
+        "snack_changes": [],
+        "allergy_changes": [
+          {
+            "index": 0,
+            "action": "add",
+            "child": "Lila",
+            "allergy_text": "Peanut (severe)",
+            "source_refs": [
+              {
+                "url": "https://mail.google.com/mail/u/0/#inbox/187ad999cafeabcd",
+                "type": "email",
+                "item_id": "096f3e8080eeab4abe8b0729bf758c5582e4e1bd",
+                "label": "Sequoia Health Update - September 28"
+              }
+            ],
+            "raw": {
+              "action": "add",
+              "child": "Lila",
+              "allergy_text": "Peanut (severe)",
+              "source_type": "email",
+              "source_url": "https://mail.google.com/mail/u/0/#inbox/187ad999cafeabcd",
+              "source_id": "187ad999cafeabcd@google.com",
+              "source_subject": "Sequoia Health Update - September 28",
+              "ingested_at": "2025-09-28T17:45:00.000Z",
+              "item_id": "096f3e8080eeab4abe8b0729bf758c5582e4e1bd"
+            }
+          }
+        ],
+        "notices": [
+          {
+            "index": 0,
+            "text": "Send students in uniform and pack a backup outfit.",
+            "audience": "Families",
+            "priority": "medium",
+            "source_refs": [
+              {
+                "url": "https://mail.google.com/mail/u/0/#inbox/187ad999cafeabcd",
+                "type": "email",
+                "item_id": "5d0acb903d1b2c2bfad48d7fc8a364c4ec686699",
+                "label": "Sequoia Health Update - September 28"
+              }
+            ],
+            "raw": {
+              "text": "Send students in uniform and pack a backup outfit.",
+              "audience": "Families",
+              "priority": "medium",
+              "source_type": "email",
+              "source_url": "https://mail.google.com/mail/u/0/#inbox/187ad999cafeabcd",
+              "source_id": "187ad999cafeabcd@google.com",
+              "source_subject": "Sequoia Health Update - September 28",
+              "ingested_at": "2025-09-28T17:45:00.000Z",
+              "item_id": "5d0acb903d1b2c2bfad48d7fc8a364c4ec686699"
+            }
+          }
+        ],
+        "topSource": {
+          "source_type": "email",
+          "source_url": "https://mail.google.com/mail/u/0/#inbox/187ad999cafeabcd",
+          "source_id": "187ad999cafeabcd@google.com",
+          "subject": "Sequoia Health Update - September 28",
+          "file_name": null,
+          "ingested_at": "2025-09-28T17:45:00.000Z",
+          "gmail_metadata": {
+            "label_ids": [
+              "INBOX"
+            ],
+            "history_id": null
+          },
+          "prompt_template": "You are an assistant that reads school communications (email bodies and PDFs) and outputs strict JSON with these top-level arrays: events[], snack_changes[], allergy_changes[], notices[].\n\nOutput rules:\n- Output ONLY JSON; no prose.\n- events[] objects: { title, start_iso, end_iso, location?, description?, audience? }\n- snack_changes[] objects: { week_label, child, note? }\n- allergy_changes[] objects: { action: \"add\"|\"remove\", child, allergy_text }\n- notices[] objects: { text, audience?, priority? }\n\nIf dates/times are ambiguous, include in notices[] and leave events[] empty for that item.\n"
+        }
+      },
+      "debug": {
+        "source_counts": {
+          "calendar": 1,
+          "snack_rows": 1,
+          "allergy_rows": 1,
+          "ops_rows": 0
+        }
+      }
+    }
+  }
+]

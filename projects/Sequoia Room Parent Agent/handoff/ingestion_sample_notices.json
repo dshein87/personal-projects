@@ -1,0 +1,43 @@
+[
+  {
+    "events": [],
+    "snack_changes": [],
+    "allergy_changes": [],
+    "notices": [
+      {
+        "text": "Classroom closed October 10 for teacher in-service day.",
+        "audience": "Families",
+        "priority": "high",
+        "source_type": "pdf",
+        "source_url": "https://drive.google.com/file/d/1PDFNOTICEONLY/view",
+        "source_id": "1PDFNOTICEONLY",
+        "source_file_name": "Sequoia_Reminders_2025-09-29.pdf",
+        "ingested_at": "2025-09-29T15:10:00.000Z",
+        "source_ocr_status": "vision",
+        "item_id": "ba60b95c8cd66096e5fce4f03ab9e117cc132ea8"
+      },
+      {
+        "text": "Bring labeled water bottles daily.",
+        "audience": "Families",
+        "priority": "low",
+        "source_type": "pdf",
+        "source_url": "https://drive.google.com/file/d/1PDFNOTICEONLY/view",
+        "source_id": "1PDFNOTICEONLY",
+        "source_file_name": "Sequoia_Reminders_2025-09-29.pdf",
+        "ingested_at": "2025-09-29T15:10:00.000Z",
+        "source_ocr_status": "vision",
+        "item_id": "edf873209cb2fc0bbcfd7a469ad93b80e41f28cd"
+      }
+    ],
+    "_source": {
+      "source_type": "pdf",
+      "source_url": "https://drive.google.com/file/d/1PDFNOTICEONLY/view",
+      "source_id": "1PDFNOTICEONLY",
+      "subject": null,
+      "file_name": "Sequoia_Reminders_2025-09-29.pdf",
+      "ingested_at": "2025-09-29T15:10:00.000Z",
+      "ocr_status": "vision",
+      "prompt_template": "You are an assistant that reads school communications (email bodies and PDFs) and outputs strict JSON with these top-level arrays: events[], snack_changes[], allergy_changes[], notices[].\n\nOutput rules:\n- Output ONLY JSON; no prose.\n- events[] objects: { title, start_iso, end_iso, location?, description?, audience? }\n- snack_changes[] objects: { week_label, child, note? }\n- allergy_changes[] objects: { action: \"add\"|\"remove\", child, allergy_text }\n- notices[] objects: { text, audience?, priority? }\n\nIf dates/times are ambiguous, include in notices[] and leave events[] empty for that item.\n"
+    }
+  }
+]

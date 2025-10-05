@@ -1,0 +1,125 @@
+{
+  "processed_at": "2025-09-23T02:44:16Z",
+  "actor": "a4.dryrun@example.com",
+  "approvals": [
+    {
+      "token": "3a3c99fd6d4ae145ac2c970d",
+      "scope": "calendar",
+      "op": "upsert",
+      "admin_row": {
+        "Status": "Approved",
+        "ProcessedAt": "2025-09-23T02:44:16Z",
+        "Actor": "a4.dryrun@example.com"
+      },
+      "opslog": {
+        "Timestamp": "2025-09-23T02:44:16Z",
+        "Actor": "a4.dryrun@example.com",
+        "Scope": "calendar",
+        "Action": "calendar.upsert",
+        "TargetKey": "3a3c99fd6d4ae145ac2c970d",
+        "SourceToken": "3a3c99fd6d4ae145ac2c970d",
+        "SourceLink": "",
+        "DiffJSON": "{\n  \"apply\": {\n    \"scope\": \"calendar\",\n    \"op\": \"upsert\",\n    \"event_id\": null,\n    \"summary\": \"Sequoia - Art Walk\",\n    \"start_iso\": \"2025-10-02T00:30:00.000Z\",\n    \"end_iso\": \"2025-10-02T01:30:00.000Z\",\n    \"location\": \"Main Hall\",\n    \"description\": \"Updated time and location\",\n    \"audience\": null,\n    \"source_refs\": [\n      {\n        \"url\": \"https://mail.google.com/mail/u/0/#msg-1\",\n        \"type\": \"email\",\n        \"item_id\": \"msg-1\",\n        \"label\": \"Sequoia Update\"\n      }\n    ]\n  },\n  \"status\": \"Approved\"\n}"
+      }
+    },
+    {
+      "token": "f4200f4d202a7352c959ab1a",
+      "scope": "calendar",
+      "op": "upsert",
+      "admin_row": {
+        "Status": "Approved",
+        "ProcessedAt": "2025-09-23T02:44:16Z",
+        "Actor": "a4.dryrun@example.com"
+      },
+      "opslog": {
+        "Timestamp": "2025-09-23T02:44:16Z",
+        "Actor": "a4.dryrun@example.com",
+        "Scope": "calendar",
+        "Action": "calendar.upsert",
+        "TargetKey": "f4200f4d202a7352c959ab1a",
+        "SourceToken": "f4200f4d202a7352c959ab1a",
+        "SourceLink": "",
+        "DiffJSON": "{\n  \"apply\": {\n    \"scope\": \"calendar\",\n    \"op\": \"upsert\",\n    \"event_id\": null,\n    \"summary\": \"Class Pumpkin Patch Trip\",\n    \"start_iso\": \"2025-10-05T16:00:00.000Z\",\n    \"end_iso\": \"2025-10-05T20:00:00.000Z\",\n    \"location\": \"Half Moon Bay\",\n    \"description\": \"Bring lunch and jacket\",\n    \"audience\": null,\n    \"source_refs\": [\n      {\n        \"url\": \"https://mail.google.com/mail/u/0/#msg-2\",\n        \"type\": \"email\",\n        \"item_id\": \"msg-1\",\n        \"label\": \"Sequoia Update\"\n      },\n      {\n        \"url\": \"https://mail.google.com/mail/u/0/#msg-1\",\n        \"type\": \"email\",\n        \"item_id\": \"msg-1\",\n        \"label\": \"Sequoia Update\"\n      }\n    ]\n  },\n  \"status\": \"Approved\"\n}"
+      }
+    },
+    {
+      "token": "d24618db822a03c8ab8735e3",
+      "scope": "snack",
+      "op": "assign",
+      "admin_row": {
+        "Status": "Approved",
+        "ProcessedAt": "2025-09-23T02:44:16Z",
+        "Actor": "a4.dryrun@example.com"
+      },
+      "opslog": {
+        "Timestamp": "2025-09-23T02:44:16Z",
+        "Actor": "a4.dryrun@example.com",
+        "Scope": "snack",
+        "Action": "snack.assign",
+        "TargetKey": "2025-09-30",
+        "SourceToken": "d24618db822a03c8ab8735e3",
+        "SourceLink": "",
+        "DiffJSON": "{\n  \"apply\": {\n    \"scope\": \"snack\",\n    \"op\": \"assign\",\n    \"week_key\": \"2025-09-30\",\n    \"week_label\": \"Sep. 30 \\u2013 Oct. 4\",\n    \"row_index\": 2,\n    \"prior_child\": \"Taylor\",\n    \"new_child\": \"Jordan\",\n    \"note\": \"Confirmed via email\",\n    \"source_refs\": [\n      {\n        \"url\": \"https://mail.google.com/mail/u/0/#msg-1\",\n        \"type\": \"email\",\n        \"item_id\": \"msg-1\",\n        \"label\": \"Sequoia Update\"\n      }\n    ]\n  },\n  \"status\": \"Approved\"\n}"
+      }
+    }
+  ],
+  "opslog": [
+    {
+      "Timestamp": "2025-09-23T02:44:16Z",
+      "Actor": "a4.dryrun@example.com",
+      "Scope": "calendar",
+      "Action": "calendar.upsert",
+      "TargetKey": "3a3c99fd6d4ae145ac2c970d",
+      "SourceToken": "3a3c99fd6d4ae145ac2c970d",
+      "SourceLink": "",
+      "DiffJSON": "{\n  \"apply\": {\n    \"scope\": \"calendar\",\n    \"op\": \"upsert\",\n    \"event_id\": null,\n    \"summary\": \"Sequoia - Art Walk\",\n    \"start_iso\": \"2025-10-02T00:30:00.000Z\",\n    \"end_iso\": \"2025-10-02T01:30:00.000Z\",\n    \"location\": \"Main Hall\",\n    \"description\": \"Updated time and location\",\n    \"audience\": null,\n    \"source_refs\": [\n      {\n        \"url\": \"https://mail.google.com/mail/u/0/#msg-1\",\n        \"type\": \"email\",\n        \"item_id\": \"msg-1\",\n        \"label\": \"Sequoia Update\"\n      }\n    ]\n  },\n  \"status\": \"Approved\"\n}"
+    },
+    {
+      "Timestamp": "2025-09-23T02:44:16Z",
+      "Actor": "a4.dryrun@example.com",
+      "Scope": "calendar",
+      "Action": "calendar.upsert",
+      "TargetKey": "f4200f4d202a7352c959ab1a",
+      "SourceToken": "f4200f4d202a7352c959ab1a",
+      "SourceLink": "",
+      "DiffJSON": "{\n  \"apply\": {\n    \"scope\": \"calendar\",\n    \"op\": \"upsert\",\n    \"event_id\": null,\n    \"summary\": \"Class Pumpkin Patch Trip\",\n    \"start_iso\": \"2025-10-05T16:00:00.000Z\",\n    \"end_iso\": \"2025-10-05T20:00:00.000Z\",\n    \"location\": \"Half Moon Bay\",\n    \"description\": \"Bring lunch and jacket\",\n    \"audience\": null,\n    \"source_refs\": [\n      {\n        \"url\": \"https://mail.google.com/mail/u/0/#msg-2\",\n        \"type\": \"email\",\n        \"item_id\": \"msg-1\",\n        \"label\": \"Sequoia Update\"\n      },\n      {\n        \"url\": \"https://mail.google.com/mail/u/0/#msg-1\",\n        \"type\": \"email\",\n        \"item_id\": \"msg-1\",\n        \"label\": \"Sequoia Update\"\n      }\n    ]\n  },\n  \"status\": \"Approved\"\n}"
+    },
+    {
+      "Timestamp": "2025-09-23T02:44:16Z",
+      "Actor": "a4.dryrun@example.com",
+      "Scope": "snack",
+      "Action": "snack.assign",
+      "TargetKey": "2025-09-30",
+      "SourceToken": "d24618db822a03c8ab8735e3",
+      "SourceLink": "",
+      "DiffJSON": "{\n  \"apply\": {\n    \"scope\": \"snack\",\n    \"op\": \"assign\",\n    \"week_key\": \"2025-09-30\",\n    \"week_label\": \"Sep. 30 \\u2013 Oct. 4\",\n    \"row_index\": 2,\n    \"prior_child\": \"Taylor\",\n    \"new_child\": \"Jordan\",\n    \"note\": \"Confirmed via email\",\n    \"source_refs\": [\n      {\n        \"url\": \"https://mail.google.com/mail/u/0/#msg-1\",\n        \"type\": \"email\",\n        \"item_id\": \"msg-1\",\n        \"label\": \"Sequoia Update\"\n      }\n    ]\n  },\n  \"status\": \"Approved\"\n}"
+    }
+  ],
+  "calendar_updates": [
+    {
+      "summary": "Sequoia - Art Walk",
+      "start_iso": "2025-10-02T00:30:00.000Z",
+      "end_iso": "2025-10-02T01:30:00.000Z",
+      "event_id": null,
+      "op": "upsert",
+      "location": "Main Hall"
+    },
+    {
+      "summary": "Class Pumpkin Patch Trip",
+      "start_iso": "2025-10-05T16:00:00.000Z",
+      "end_iso": "2025-10-05T20:00:00.000Z",
+      "event_id": null,
+      "op": "upsert",
+      "location": "Half Moon Bay"
+    }
+  ],
+  "snack_updates": [
+    {
+      "week_key": "2025-09-30",
+      "week_label": "Sep. 30 \u2013 Oct. 4",
+      "prior_child": "Taylor",
+      "new_child": "Jordan",
+      "note": "Confirmed via email"
+    }
+  ]
+}

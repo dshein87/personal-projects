@@ -1,0 +1,120 @@
+[
+  {
+    "json": {
+      "meta": {
+        "generated_at_iso": "2025-09-22T21:30:46.826Z",
+        "tz": "America/Los_Angeles",
+        "poll_start_iso": "2025-09-29T16:00:00.000Z",
+        "poll_end_iso": "2025-09-29T18:00:00.000Z",
+        "lookback_start_iso": "2025-09-28T16:00:00.000Z",
+        "lookback_end_iso": "2025-09-29T18:00:00.000Z"
+      },
+      "current": {
+        "calendar": [],
+        "snacks": [
+          {
+            "week_label": "Week of September 29",
+            "week_key": "2025-09-29",
+            "child": "Devraj",
+            "range": {
+              "start_iso": "2025-09-29T00:00:00.000Z",
+              "end_iso": "2025-09-29T23:59:59.000Z"
+            },
+            "row_index": 3,
+            "raw": {
+              "Week": "Week of September 29",
+              "Child": "Devraj",
+              "rowIndex": 3
+            }
+          }
+        ],
+        "allergies": [
+          {
+            "text": "Lila — Peanut (severe)",
+            "raw": {
+              "Allergy": "Lila — Peanut (severe)"
+            }
+          }
+        ],
+        "opslog": []
+      },
+      "proposed": {
+        "events": [],
+        "snack_changes": [],
+        "allergy_changes": [],
+        "notices": [
+          {
+            "index": 0,
+            "text": "Classroom closed October 10 for teacher in-service day.",
+            "audience": "Families",
+            "priority": "high",
+            "source_refs": [
+              {
+                "url": "https://drive.google.com/file/d/1PDFNOTICEONLY/view",
+                "type": "pdf",
+                "item_id": "ba60b95c8cd66096e5fce4f03ab9e117cc132ea8",
+                "label": null
+              }
+            ],
+            "raw": {
+              "text": "Classroom closed October 10 for teacher in-service day.",
+              "audience": "Families",
+              "priority": "high",
+              "source_type": "pdf",
+              "source_url": "https://drive.google.com/file/d/1PDFNOTICEONLY/view",
+              "source_id": "1PDFNOTICEONLY",
+              "source_file_name": "Sequoia_Reminders_2025-09-29.pdf",
+              "ingested_at": "2025-09-29T15:10:00.000Z",
+              "source_ocr_status": "vision",
+              "item_id": "ba60b95c8cd66096e5fce4f03ab9e117cc132ea8"
+            }
+          },
+          {
+            "index": 1,
+            "text": "Bring labeled water bottles daily.",
+            "audience": "Families",
+            "priority": "low",
+            "source_refs": [
+              {
+                "url": "https://drive.google.com/file/d/1PDFNOTICEONLY/view",
+                "type": "pdf",
+                "item_id": "edf873209cb2fc0bbcfd7a469ad93b80e41f28cd",
+                "label": null
+              }
+            ],
+            "raw": {
+              "text": "Bring labeled water bottles daily.",
+              "audience": "Families",
+              "priority": "low",
+              "source_type": "pdf",
+              "source_url": "https://drive.google.com/file/d/1PDFNOTICEONLY/view",
+              "source_id": "1PDFNOTICEONLY",
+              "source_file_name": "Sequoia_Reminders_2025-09-29.pdf",
+              "ingested_at": "2025-09-29T15:10:00.000Z",
+              "source_ocr_status": "vision",
+              "item_id": "edf873209cb2fc0bbcfd7a469ad93b80e41f28cd"
+            }
+          }
+        ],
+        "topSource": {
+          "source_type": "pdf",
+          "source_url": "https://drive.google.com/file/d/1PDFNOTICEONLY/view",
+          "source_id": "1PDFNOTICEONLY",
+          "subject": null,
+          "file_name": "Sequoia_Reminders_2025-09-29.pdf",
+          "ingested_at": "2025-09-29T15:10:00.000Z",
+          "ocr_status": "vision",
+          "prompt_template": "You are an assistant that reads school communications (email bodies and PDFs) and outputs strict JSON with these top-level arrays: events[], snack_changes[], allergy_changes[], notices[].\n\nOutput rules:\n- Output ONLY JSON; no prose.\n- events[] objects: { title, start_iso, end_iso, location?, description?, audience? }\n- snack_changes[] objects: { week_label, child, note? }\n- allergy_changes[] objects: { action: \"add\"|\"remove\", child, allergy_text }\n- notices[] objects: { text, audience?, priority? }\n\nIf dates/times are ambiguous, include in notices[] and leave events[] empty for that item.\n"
+        }
+      },
+      "debug": {
+        "source_counts": {
+          "calendar": 0,
+          "snack_rows": 1,
+          "allergy_rows": 1,
+          "ops_rows": 0
+        }
+      }
+    }
+  }
+]

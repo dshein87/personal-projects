@@ -1,17 +1,25 @@
+<?xml version="1.0" ?>
 <codexDailyUpdate generated="2025-09-22T05:32:00Z" agent="Codex">
+  <meta>
+    <CurrentFocus>Use fixed export (handoff/workflow_export_ready_fixed.json) for live QA and final upload.</CurrentFocus>
+    <NextSubtasks>1) Upload fixed workflow via PUT. 2) Run live dry run with Sheets/Calendar. 3) Log evidence in handoff files. 4) Sanitize configs and prepare merge.</NextSubtasks>
+    <RemainingWork>Live dry run, documentation updates, secret sweep, merge to main.</RemainingWork>
+    <Notes>Schedule triggers now use typeVersion 1.5; editor import confirmed. Slack Notify Error remains disabled intentionally.</Notes>
+  </meta>
   <summary>
     <item>Repo scaffold aligned to spec: prompts, Apps Script stub, MCP config, README prompt directory (`prompts/`, `gas/Code.gs:1`, `mcp/servers.json:1`, `README.md:1`).</item>
     <item>Live workflow snapshot (`n8n/room-parent-updater.json:1`) captured; workflow renamed to "Room Parent Agent (WIP)" and kept editor-compatible (60-minute trigger until interval-friendly cron replacement is designed).</item>
     <item>Prompt library expanded with WhatsApp + daily/weekly digests for tone control (`prompts/formatter_whatsapp.txt:1`, `prompts/digest_daily.txt:1`, `prompts/digest_weekly.txt:1`).</item>
     <item>Approvals HMAC secret stored in workflow static data via helper script (`scripts/set_approvals_secret.sh:1`, node `Store Approvals Secret`).</item>
     <item>Security scrub complete: replaced real tokens with placeholders (`mcp/servers.json:1`, `servers.json:1`, `Sequioa parent app API keys.md:1`) and added project `.gitignore:1`.</item>
+    <item>Diff lane now normalizes current calendar/snack/allergy state and produces deterministic approval payloads with admin_rows/admin_sheet_rows datasets.</item>
+    <item>Sample diff payload stored at `handoff/diff_sample.json` with compile/compute outputs for A3 validation.</item>
+    <item>Extra QA assets: `handoff/ingestion_sample_allergy.json`, `handoff/ingestion_sample_notices.json`, and paired diffs (`handoff/diff_sample_allergy.json`, `handoff/diff_sample_notices.json`) ready for approvals testing.</item>
   </summary>
-
   <references>
     <item path="Room Parent Agent Codex Build Spec.md:1">Canonical build spec and guardrails.</item>
     <item path="Room Parent Agent Project Plan.md:1">Detailed node/architecture expectations + security checklist.</item>
   </references>
-
   <workflowState>
     <workflowId>5FMGLNbKrDBKJaQe</workflowId>
     <workflowName>Room Parent Agent (WIP)</workflowName>
@@ -19,37 +27,166 @@
     <nodeCount>18</nodeCount>
     <lastSnapshot path="n8n/room-parent-updater.json:1">Pulled via REST after secret storage + sanitation.</lastSnapshot>
     <observations>
-      <item>Prototype chain intact (Gmail/Drive ingestion nodes, Gemini extraction, JSON validation, legacy approval tokens). HMAC secret available but not yet enforced.</item>
+      <item>Workflow now sports validated HMAC approvals (signed links + webhook guards); writebacks/digests remain pending on A4.</item>
       <item>MCP helper tools still return empty payloads; rely on REST API for workflow operations.</item>
     </observations>
   </workflowState>
-
   <securityAudit>
     <step status="completed">Replaced real credentials with `${PLACEHOLDER}` strings in `mcp/servers.json:1`, `servers.json:1`, `Sequioa parent app API keys.md:1`.</step>
     <step status="completed">Added `.gitignore:1` to exclude node_modules, OS cruft, and local secret artifacts.</step>
     <step status="completed">Scanned repository for known token substrings (`rg "AIza|GOCSPX|Bearer ARwy"`).</step>
     <step status="pending">Before push, re-run `./scripts/set_approvals_secret.sh` locally post-clone; do not commit outputs or workflow backups containing secrets.</step>
   </securityAudit>
-
   <pendingWork>
-    <item priority="P0">Reintroduce 2-hour (08–20 PT) schedule + daily/weekly digests using interval-friendly design compatible with n8n v1.110.1.</item>
-    <item priority="P0">Unify Gmail + Drive ingestion into Gemini extractor (PDF text fallback, lookback cursors) and route into diff pipeline.</item>
-    <item priority="P0">Implement diff/queue logic for Calendar + Snack sheet (Admin tab columns `WhenFound | Type | Summary | SourceLink | ApproveLink | RejectLink | Status`; OpsLog headers `Timestamp | Action | Target | DiffJSON | Actor | SourceLink`).</item>
-    <item priority="P0">Replace token approval flow with HMAC validation leveraging `store.approvalsHmacSecret`.</item>
-    <item priority="P1">Finalize approval UX: Sheets queue population, 24h HMAC email links, wait/resume gating.</item>
-    <item priority="P1">Writebacks: safe snack/calendar upserts with de-dupe + OpsLog logging; WhatsApp draft generation via `prompts/formatter_whatsapp.txt` post-approval.</item>
-    <item priority="P1">Add daily/weekly digest branches once scheduling finalized, using new prompt templates.</item>
-    <item priority="P2">Investigate MCP tool responses (optional) and perform end-to-end dry run with approvals + rollback validation.</item>
+    <item priority="P0">A4 (`rp/a4-20250922`): Coordinate and run dry-run approval (Sheets/Calendar), verify queue/OpsLog outputs, log evidence, and prep workflow export.</item>
+    <item priority="P1">A1 (`rp/a1-20250922`) &amp; A2 (`rp/a2-20250922`): Assist QA if edge-case payloads needed; otherwise standby.</item>
+    <item priority="P1">Finalize documentation, sanitize configs (incl. Slack webhook), perform secret sweep, and coordinate merge to `main`.</item>
   </pendingWork>
-
   <concerns>
-    <item>Ingestion/diff pipeline still incomplete; approvals currently unauthenticated tokens.</item>
-    <item>Need backward-compatible scheduling approach before enabling production cadence.</item>
+    <item>A4 dry-run pending; approvals payloads must stay stable while writeback logic is verified.</item>
+    <item>Placeholder Slack webhook still present—must swap/disable before production.</item>
   </concerns>
-
   <nextRecommendedSteps>
-    <item>Design 2-hour + digest scheduling using interval trigger + conditional gating for v1.110.1.</item>
-    <item>Implement ingestion → diff → approval refactor, wiring HMAC validation.</item>
-    <item>Keep `.gitignore` and sanitized placeholders intact prior to Git push.</item>
+    <item>Coordinate dry-run window with A4 (fixtures/live sheets) and capture queue/OpsLog/Calendar outputs.</item>
+    <item>Document QA results in handoff files + README/plan, then re-export workflow via n8n API.</item>
+    <item>Sanitize configs before push (reset `mcp/servers.json`, `servers.json`, Slack webhook placeholder, rerun secret sweep).</item>
   </nextRecommendedSteps>
+  <progress>
+    <milestone timestamp="2025-09-22T16:31:08Z" status="recorded">
+      <title>Verified workflow snapshot baseline</title>
+      <detail>Unable to reach n8n via MCP tools (placeholders for MCP_N8N_BASE_URL/Bearer). Continuing planning against `n8n/room-parent-updater.json` until credentials provided.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T16:33:51Z" status="recorded">
+      <title>Wrote v1 node diff blueprint</title>
+      <detail>Extended `Room Parent Agent Project Plan.md` with Section 4A detailing schedule, ingestion, diff, approval, apply, and digest nodes for the upcoming MCP diff.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T16:43:33Z" status="blocked">
+      <title>Awaiting network approval for MCP</title>
+      <detail>Secrets loaded locally, but outbound calls to https://dshein.app.n8n.cloud are blocked by sandbox network policy; seeking approval to proceed.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T16:45:30Z" status="approved">
+      <title>Network access enabled</title>
+      <detail>User approved outbound network request; curl confirmed MCP SSE endpoint reachable.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T16:52:32Z" status="completed">
+      <title>Fresh workflow export captured</title>
+      <detail>Used n8n public API with approved credentials to download latest Room Parent Agent workflow into `n8n/room-parent-updater.json`.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T16:54:45Z" status="recorded">
+      <title>MCP fallback documented</title>
+      <detail>Added Section 4B to project plan detailing curl-based workflow export/apply steps when MCP tools misconfigure credentials.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T17:00:24Z" status="completed">
+      <title>Schedule refactor applied</title>
+      <detail>Updated workflow via API: 2-hour Main Poll Schedule with time-window guard, run-context initializer, and new daily/weekly digest triggers.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T17:05:59Z" status="recorded">
+      <title>Multi-agent instructions ready</title>
+      <detail>Documented coordinator + agent roles in `Multi-Agent Playbook.md` and updated project plan Section 4C.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T17:26:00Z" status="in-progress">
+      <title>Coordinator handoff initiated</title>
+      <detail>Switched to branch `ds-c0-20250922`, created dedicated agent branches, and refreshed handoff meta to reflect multi-agent coordination focus.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T17:28:00Z" status="completed">
+      <title>Sanitized MCP configs restored</title>
+      <detail>Reset `mcp/servers.json` and `servers.json` to placeholder payloads to ensure secrets stay out of shared branches.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T18:40:00Z" status="completed">
+      <title>HMAC approvals pipeline updated</title>
+      <detail>Swapped token-based links for signed payloads: added Validate HMAC node, POST-only webhooks, and queueRow metadata with Status/Token columns.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T18:48:00Z" status="completed">
+      <title>Signature tests recorded</title>
+      <detail>Ran local Node harness to confirm valid approve flow, reject bad signatures, and catch expired timestamps; results logged for coordinator review.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T22:10:00Z" status="completed">
+      <title>HMAC validation signed off</title>
+      <detail>Approve/reject webhooks now fronted by Validate HMAC; pending store/meta propagation confirmed and notes relayed to A4 launch.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T17:44:49Z" status="completed">
+      <title>Ingestion lane rebuilt</title>
+      <detail>Gmail search now normalizes messages/attachments, Drive PDFs download with OCR fallback, Merge Ingestion feeds Gemini via prompts/extractor.txt, and outputs carry source hashes.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T20:53:03Z" status="completed">
+      <title>Ingestion sample payload staged</title>
+      <detail>Simulated ingestion run (email + PDF) through metadata/Validate logic; saved outputs to `handoff/ingestion_sample.json` for A2 diff development.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T19:10:00Z" status="completed">
+      <title>Compute Diffs contract documented</title>
+      <detail>Updated workflow with Compile Current State + Compute Diffs nodes, staged admin queue dataset, persisted pendingApprovals static data, and documented schema/contract for A3/A4.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T19:05:00Z" status="completed">
+      <title>Diff tokens wired into HMAC links</title>
+      <detail>Make Approval Links now consumes Compute Diffs admin_rows, signs deterministic tokens, and updates store.pendingApprovals with queue/email datasets.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T19:12:00Z" status="completed">
+      <title>Approval handlers synced with pending store</title>
+      <detail>Validate Token nodes pull from store.pendingApprovals, enforce TTL, and expose apply payloads for A4 writebacks.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T21:33:48Z" status="completed">
+      <title>QA fixtures and checklist prepared</title>
+      <detail>Produced additional ingestion/diff samples, drafted HMAC approval test checklist, and confirmed A1/A2 remain on standby until approvals validation clears.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T21:57:25Z" status="completed">
+      <title>Coordinator update</title>
+      <detail>Confirmed ingestion/diff/approvals lanes complete; A4 tackling apply/digest while coordinator prepares QA + secret sweep.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T18:15:00Z" status="completed">
+      <title>Admin queue wiring completed</title>
+      <detail>Queue snapshot ➜ diff writer now append/update Admin tab per token using signed rows; static pending store refreshed.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T19:05:00Z" status="completed">
+      <title>Writebacks, messaging, digests staged</title>
+      <detail>Snack/calendar apply nodes, OpsLog append, WhatsApp formatter, and daily/weekly digest prompts connected; awaiting dry-run with fixtures.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T22:17:10Z" status="completed">
+      <title>QA prep checkpoint</title>
+      <detail>A4 to run dry-run approval with fixtures/live sheets; A1/A2/A3 standing by for edge cases; only operational tasks remain.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T22:45:00Z" status="recorded">
+      <title>Dry-run + export tasks queued</title>
+      <detail>Action list: coordinate fixture-based approval window (Sheets/Calendar), verify queue/OpsLog/Calendar outputs, log evidence in handoff files, re-export workflow via n8n API, and swap/disable placeholder Slack webhook.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-23T02:43:38Z" status="recorded">
+      <title>QA dry-run preparation logged</title>
+      <detail>A4 wiring complete; pending items are dry run, workflow export, Slack cleanup, documentation updates before merge.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-23T02:44:20Z" status="completed">
+      <title>Dry-run simulated via fixtures</title>
+      <detail>Used diff_sample payloads to confirm Admin queue rows, OpsLog JSON, and calendar/snack apply outputs (see handoff/dry_run_simulated.json).</detail>
+    </milestone>
+    <milestone timestamp="2025-09-23T02:44:30Z" status="completed">
+      <title>Notify Error Slack paused</title>
+      <detail>Notify Error Slack node marked disabled until production webhook supplied; prevents accidental POST during QA.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-23T03:15:00Z" status="completed">
+      <title>Schedule trigger fix</title>
+      <detail>Patched schedule nodes to use supported options.timezone only so n8n UI can load workflow.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-23T02:58:19Z" status="completed">
+      <title>Workflow API upload completed</title>
+      <detail>Coordinator pushed updated nodes to n8n via PUT (name/nodes/connections/settings) and saved export snapshot locally.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-23T03:00:00Z" status="blocked">
+      <title>Live execution pending</title>
+      <detail>Attempted to trigger workflow via n8n API but POST is restricted; operator must run dry run directly in UI.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-23T03:00:37Z" status="completed">
+      <title>Workflow re-uploaded without options</title>
+      <detail>Trimmed schedule trigger options to avoid n8n import errors; latest snapshot archived at n8n/room-parent-updater.live-20250923T030037Z.json.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-23T03:09:52Z" status="completed">
+      <title>Parameter metadata cleaned</title>
+      <detail>Removed resource-locator objects from parameters to resolve import errors; latest workflow pushed to n8n.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-23T05:45:00Z" status="completed">
+      <title>Resource locator metadata restored</title>
+      <detail>Reintroduced full __rl resource locator metadata, emitted a minimal payload (name/nodes/connections/settings), removed empty `options` objects, trimmed Drive PDF List options.fields, and dropped legacy HTTP Request options.fullResponse flags before saving handoff/workflow_export_ready_fixed.json so n8n editor can import without schema errors.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-23T03:30:00Z" status="completed">
+      <title>Workflow import verified</title>
+      <detail>Using typeVersion 1.5 schedule triggers resolved “property option” errors; fixed export ready for production upload.</detail>
+    </milestone>
+  </progress>
 </codexDailyUpdate>

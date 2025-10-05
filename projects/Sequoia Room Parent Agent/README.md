@@ -13,5 +13,6 @@ Adjust tones or formats by editing the files under `/prompts/`:
 - `formatter_whatsapp.txt` – WhatsApp bulletin generator (≤800 chars, plain text).
 - `digest_daily.txt` – Friendly, succinct daily email digest.
 - `digest_weekly.txt` – Weekly recap email template.
+- `approvals_daily_email.html` – HTML approval digest with signed URLs and HMAC header guidance.
 
 Each prompt is intentionally lightweight so tone tweaks can be made without touching the workflow logic.

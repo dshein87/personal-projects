@@ -1,0 +1,202 @@
+[
+  {
+    "json": {
+      "meta": {
+        "generated_at_iso": "2025-09-22T21:30:09.319Z",
+        "tz": "America/Los_Angeles",
+        "poll_start_iso": "2025-09-28T16:00:00.000Z",
+        "poll_end_iso": "2025-09-28T18:00:00.000Z",
+        "lookback_start_iso": "2025-09-27T16:00:00.000Z",
+        "lookback_end_iso": "2025-09-28T18:00:00.000Z",
+        "diff_generated_at_iso": "2025-09-22T21:30:09.319Z",
+        "pending_count": 1
+      },
+      "calendar_actions": [
+        {
+          "scope": "calendar",
+          "op": "upsert",
+          "event_id": null,
+          "summary": "Picture Day",
+          "start_iso": "2025-10-07T16:00:00.000Z",
+          "end_iso": "2025-10-07T17:30:00.000Z",
+          "location": "Courtyard",
+          "description": "Picture day for Sequoia class",
+          "audience": "Families",
+          "dedupe_key": "picture-day|2025-10-07T16:00",
+          "source_refs": [
+            {
+              "url": "https://mail.google.com/mail/u/0/#inbox/187ad999cafeabcd",
+              "type": "email",
+              "item_id": "6b4cc8b599295e07d23887430fc065e082f30894",
+              "label": "Sequoia Health Update - September 28"
+            }
+          ],
+          "approval_token": "fe69c486f84b03d6b4311e24",
+          "hmac_payload": {
+            "version": 1,
+            "token": "fe69c486f84b03d6b4311e24",
+            "action": "calendar.upsert",
+            "dedupe_key": "picture-day|2025-10-07T16:00",
+            "requested_at": "2025-09-22T21:30:09.319Z"
+          },
+          "diff": {
+            "previous": null
+          },
+          "admin_summary": "Create Picture Day",
+          "admin_detail": "Create new event",
+          "admin_row": {
+            "token": "fe69c486f84b03d6b4311e24",
+            "scope": "calendar",
+            "type": "Calendar",
+            "when_found_iso": "2025-09-22T21:30:09.319Z",
+            "summary": "Create Picture Day",
+            "detail": "Create new event",
+            "source_url": "https://mail.google.com/mail/u/0/#inbox/187ad999cafeabcd",
+            "source_type": "email",
+            "dedupe_key": "picture-day|2025-10-07T16:00",
+            "status": "Pending",
+            "hmac_payload": {
+              "version": 1,
+              "token": "fe69c486f84b03d6b4311e24",
+              "action": "calendar.upsert",
+              "dedupe_key": "picture-day|2025-10-07T16:00",
+              "requested_at": "2025-09-22T21:30:09.319Z"
+            }
+          }
+        }
+      ],
+      "snack_actions": [],
+      "allergy_changes": [
+        {
+          "index": 0,
+          "action": "add",
+          "child": "Lila",
+          "allergy_text": "Peanut (severe)",
+          "source_refs": [
+            {
+              "url": "https://mail.google.com/mail/u/0/#inbox/187ad999cafeabcd",
+              "type": "email",
+              "item_id": "096f3e8080eeab4abe8b0729bf758c5582e4e1bd",
+              "label": "Sequoia Health Update - September 28"
+            }
+          ],
+          "raw": {
+            "action": "add",
+            "child": "Lila",
+            "allergy_text": "Peanut (severe)",
+            "source_type": "email",
+            "source_url": "https://mail.google.com/mail/u/0/#inbox/187ad999cafeabcd",
+            "source_id": "187ad999cafeabcd@google.com",
+            "source_subject": "Sequoia Health Update - September 28",
+            "ingested_at": "2025-09-28T17:45:00.000Z",
+            "item_id": "096f3e8080eeab4abe8b0729bf758c5582e4e1bd"
+          }
+        }
+      ],
+      "allergy_summary": {
+        "adds": [
+          {
+            "index": 0,
+            "action": "add",
+            "child": "Lila",
+            "allergy_text": "Peanut (severe)",
+            "source_refs": [
+              {
+                "url": "https://mail.google.com/mail/u/0/#inbox/187ad999cafeabcd",
+                "type": "email",
+                "item_id": "096f3e8080eeab4abe8b0729bf758c5582e4e1bd",
+                "label": "Sequoia Health Update - September 28"
+              }
+            ],
+            "raw": {
+              "action": "add",
+              "child": "Lila",
+              "allergy_text": "Peanut (severe)",
+              "source_type": "email",
+              "source_url": "https://mail.google.com/mail/u/0/#inbox/187ad999cafeabcd",
+              "source_id": "187ad999cafeabcd@google.com",
+              "source_subject": "Sequoia Health Update - September 28",
+              "ingested_at": "2025-09-28T17:45:00.000Z",
+              "item_id": "096f3e8080eeab4abe8b0729bf758c5582e4e1bd"
+            }
+          }
+        ],
+        "removes": []
+      },
+      "notices": [
+        {
+          "index": 0,
+          "text": "Send students in uniform and pack a backup outfit.",
+          "audience": "Families",
+          "priority": "medium",
+          "source_refs": [
+            {
+              "url": "https://mail.google.com/mail/u/0/#inbox/187ad999cafeabcd",
+              "type": "email",
+              "item_id": "5d0acb903d1b2c2bfad48d7fc8a364c4ec686699",
+              "label": "Sequoia Health Update - September 28"
+            }
+          ],
+          "raw": {
+            "text": "Send students in uniform and pack a backup outfit.",
+            "audience": "Families",
+            "priority": "medium",
+            "source_type": "email",
+            "source_url": "https://mail.google.com/mail/u/0/#inbox/187ad999cafeabcd",
+            "source_id": "187ad999cafeabcd@google.com",
+            "source_subject": "Sequoia Health Update - September 28",
+            "ingested_at": "2025-09-28T17:45:00.000Z",
+            "item_id": "5d0acb903d1b2c2bfad48d7fc8a364c4ec686699"
+          }
+        }
+      ],
+      "admin_rows": [
+        {
+          "token": "fe69c486f84b03d6b4311e24",
+          "scope": "calendar",
+          "type": "Calendar",
+          "when_found_iso": "2025-09-22T21:30:09.319Z",
+          "summary": "Create Picture Day",
+          "detail": "Create new event",
+          "source_url": "https://mail.google.com/mail/u/0/#inbox/187ad999cafeabcd",
+          "source_type": "email",
+          "dedupe_key": "picture-day|2025-10-07T16:00",
+          "status": "Pending",
+          "hmac_payload": {
+            "version": 1,
+            "token": "fe69c486f84b03d6b4311e24",
+            "action": "calendar.upsert",
+            "dedupe_key": "picture-day|2025-10-07T16:00",
+            "requested_at": "2025-09-22T21:30:09.319Z"
+          }
+        }
+      ],
+      "admin_sheet_rows": [
+        {
+          "WhenFound": "2025-09-22T21:30:09.319Z",
+          "Type": "Calendar",
+          "Summary": "Create Picture Day",
+          "Detail": "Create new event",
+          "SourceLink": "https://mail.google.com/mail/u/0/#inbox/187ad999cafeabcd",
+          "SourceType": "email",
+          "Status": "Pending",
+          "Token": "fe69c486f84b03d6b4311e24",
+          "DedupeKey": "picture-day|2025-10-07T16:00",
+          "Action": "calendar.upsert"
+        }
+      ],
+      "pending_tokens": [
+        "fe69c486f84b03d6b4311e24"
+      ],
+      "debug": {
+        "warnings": [],
+        "counts": {
+          "current_calendar": 1,
+          "proposed_calendar": 1,
+          "current_snacks": 1,
+          "proposed_snacks": 0
+        }
+      }
+    }
+  }
+]

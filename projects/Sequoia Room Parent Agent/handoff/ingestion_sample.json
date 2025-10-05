@@ -1,0 +1,109 @@
+[
+  {
+    "events": [
+      {
+        "op": "upsert",
+        "title": "Back-to-School Night",
+        "start_iso": "2025-09-26T01:00:00.000Z",
+        "end_iso": "2025-09-26T02:30:00.000Z",
+        "location": "Library",
+        "description": "Back-to-School Night for Sequoia families",
+        "audience": "Sequoia Parents",
+        "source_type": "email",
+        "source_url": "https://mail.google.com/mail/u/0/#inbox/187ad768b9cf9dfa",
+        "source_id": "187ad768b9cf9dfa@google.com",
+        "source_subject": "Sequoia Update for September 22",
+        "ingested_at": "2025-09-15T16:05:00.000Z",
+        "item_id": "522873414ac56daede406abc71469944dd77ecc7"
+      }
+    ],
+    "snack_changes": [
+      {
+        "week_label": "Week of September 29",
+        "child": "Devraj Gambino",
+        "note": "From classroom email",
+        "source_type": "email",
+        "source_url": "https://mail.google.com/mail/u/0/#inbox/187ad768b9cf9dfa",
+        "source_id": "187ad768b9cf9dfa@google.com",
+        "source_subject": "Sequoia Update for September 22",
+        "ingested_at": "2025-09-15T16:05:00.000Z",
+        "item_id": "71a805730db1626a0183022749dd57abf0c2be46"
+      }
+    ],
+    "allergy_changes": [],
+    "notices": [
+      {
+        "text": "Bring indoor shoes by next Monday.",
+        "audience": "Families",
+        "priority": "medium",
+        "source_type": "email",
+        "source_url": "https://mail.google.com/mail/u/0/#inbox/187ad768b9cf9dfa",
+        "source_id": "187ad768b9cf9dfa@google.com",
+        "source_subject": "Sequoia Update for September 22",
+        "ingested_at": "2025-09-15T16:05:00.000Z",
+        "item_id": "2373776ab642b9e47becd2937b3596217d1d4767"
+      }
+    ],
+    "_source": {
+      "source_type": "email",
+      "source_url": "https://mail.google.com/mail/u/0/#inbox/187ad768b9cf9dfa",
+      "source_id": "187ad768b9cf9dfa@google.com",
+      "subject": "Sequoia Update for September 22",
+      "file_name": null,
+      "ingested_at": "2025-09-15T16:05:00.000Z",
+      "gmail_metadata": {
+        "label_ids": [
+          "INBOX"
+        ],
+        "history_id": null
+      },
+      "prompt_template": "You are an assistant that reads school communications (email bodies and PDFs) and outputs strict JSON with these top-level arrays: events[], snack_changes[], allergy_changes[], notices[].\n\nOutput rules:\n- Output ONLY JSON; no prose.\n- events[] objects: { title, start_iso, end_iso, location?, description?, audience? }\n- snack_changes[] objects: { week_label, child, note? }\n- allergy_changes[] objects: { action: \"add\"|\"remove\", child, allergy_text }\n- notices[] objects: { text, audience?, priority? }\n\nIf dates/times are ambiguous, include in notices[] and leave events[] empty for that item.\n"
+    }
+  },
+  {
+    "events": [
+      {
+        "op": "upsert",
+        "title": "Farm Visit",
+        "start_iso": "2025-10-03T16:00:00.000Z",
+        "end_iso": "2025-10-03T20:00:00.000Z",
+        "location": "Sunol Farm",
+        "description": "Class farm visit; permission forms required",
+        "audience": "Sequoia Parents",
+        "source_type": "pdf",
+        "source_url": "https://drive.google.com/file/d/1PDF123456789/view",
+        "source_id": "1PDF123456789",
+        "source_file_name": "Sequoia_Weekly_Update_2025-09-15.pdf",
+        "ingested_at": "2025-09-15T15:31:00.000Z",
+        "source_ocr_status": "not_needed",
+        "item_id": "e3df36aee8cc480aadf48b788f1adc4d59c97586"
+      }
+    ],
+    "snack_changes": [],
+    "allergy_changes": [],
+    "notices": [
+      {
+        "text": "Return permission forms for farm visit.",
+        "audience": "Families",
+        "priority": "high",
+        "source_type": "pdf",
+        "source_url": "https://drive.google.com/file/d/1PDF123456789/view",
+        "source_id": "1PDF123456789",
+        "source_file_name": "Sequoia_Weekly_Update_2025-09-15.pdf",
+        "ingested_at": "2025-09-15T15:31:00.000Z",
+        "source_ocr_status": "not_needed",
+        "item_id": "a7eb7a403d5eb33061fdc45512a71e8da3698869"
+      }
+    ],
+    "_source": {
+      "source_type": "pdf",
+      "source_url": "https://drive.google.com/file/d/1PDF123456789/view",
+      "source_id": "1PDF123456789",
+      "subject": null,
+      "file_name": "Sequoia_Weekly_Update_2025-09-15.pdf",
+      "ingested_at": "2025-09-15T15:31:00.000Z",
+      "ocr_status": "not_needed",
+      "prompt_template": "You are an assistant that reads school communications (email bodies and PDFs) and outputs strict JSON with these top-level arrays: events[], snack_changes[], allergy_changes[], notices[].\n\nOutput rules:\n- Output ONLY JSON; no prose.\n- events[] objects: { title, start_iso, end_iso, location?, description?, audience? }\n- snack_changes[] objects: { week_label, child, note? }\n- allergy_changes[] objects: { action: \"add\"|\"remove\", child, allergy_text }\n- notices[] objects: { text, audience?, priority? }\n\nIf dates/times are ambiguous, include in notices[] and leave events[] empty for that item.\n"
+    }
+  }
+]

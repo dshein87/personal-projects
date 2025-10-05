@@ -1,0 +1,89 @@
+[
+  {
+    "json": {
+      "meta": {
+        "generated_at_iso": "2025-09-22T21:30:46.826Z",
+        "tz": "America/Los_Angeles",
+        "poll_start_iso": "2025-09-29T16:00:00.000Z",
+        "poll_end_iso": "2025-09-29T18:00:00.000Z",
+        "lookback_start_iso": "2025-09-28T16:00:00.000Z",
+        "lookback_end_iso": "2025-09-29T18:00:00.000Z",
+        "diff_generated_at_iso": "2025-09-22T21:30:46.826Z",
+        "pending_count": 0
+      },
+      "calendar_actions": [],
+      "snack_actions": [],
+      "allergy_changes": [],
+      "allergy_summary": {
+        "adds": [],
+        "removes": []
+      },
+      "notices": [
+        {
+          "index": 0,
+          "text": "Classroom closed October 10 for teacher in-service day.",
+          "audience": "Families",
+          "priority": "high",
+          "source_refs": [
+            {
+              "url": "https://drive.google.com/file/d/1PDFNOTICEONLY/view",
+              "type": "pdf",
+              "item_id": "ba60b95c8cd66096e5fce4f03ab9e117cc132ea8",
+              "label": null
+            }
+          ],
+          "raw": {
+            "text": "Classroom closed October 10 for teacher in-service day.",
+            "audience": "Families",
+            "priority": "high",
+            "source_type": "pdf",
+            "source_url": "https://drive.google.com/file/d/1PDFNOTICEONLY/view",
+            "source_id": "1PDFNOTICEONLY",
+            "source_file_name": "Sequoia_Reminders_2025-09-29.pdf",
+            "ingested_at": "2025-09-29T15:10:00.000Z",
+            "source_ocr_status": "vision",
+            "item_id": "ba60b95c8cd66096e5fce4f03ab9e117cc132ea8"
+          }
+        },
+        {
+          "index": 1,
+          "text": "Bring labeled water bottles daily.",
+          "audience": "Families",
+          "priority": "low",
+          "source_refs": [
+            {
+              "url": "https://drive.google.com/file/d/1PDFNOTICEONLY/view",
+              "type": "pdf",
+              "item_id": "edf873209cb2fc0bbcfd7a469ad93b80e41f28cd",
+              "label": null
+            }
+          ],
+          "raw": {
+            "text": "Bring labeled water bottles daily.",
+            "audience": "Families",
+            "priority": "low",
+            "source_type": "pdf",
+            "source_url": "https://drive.google.com/file/d/1PDFNOTICEONLY/view",
+            "source_id": "1PDFNOTICEONLY",
+            "source_file_name": "Sequoia_Reminders_2025-09-29.pdf",
+            "ingested_at": "2025-09-29T15:10:00.000Z",
+            "source_ocr_status": "vision",
+            "item_id": "edf873209cb2fc0bbcfd7a469ad93b80e41f28cd"
+          }
+        }
+      ],
+      "admin_rows": [],
+      "admin_sheet_rows": [],
+      "pending_tokens": [],
+      "debug": {
+        "warnings": [],
+        "counts": {
+          "current_calendar": 0,
+          "proposed_calendar": 0,
+          "current_snacks": 1,
+          "proposed_snacks": 0
+        }
+      }
+    }
+  }
+]

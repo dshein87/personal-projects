@@ -1,0 +1,195 @@
+<?xml version="1.0" ?>
+<codexDailyPlan date="2025-09-22" agent="Codex">
+  <meta>
+    <CurrentFocus>Use fixed export (handoff/workflow_export_ready_fixed.json) for live QA and final upload.</CurrentFocus>
+    <NextSubtasks>1) Upload fixed workflow via PUT. 2) Run live dry run with Sheets/Calendar. 3) Log evidence in handoff files. 4) Sanitize configs and prepare merge.</NextSubtasks>
+    <RemainingWork>Live dry run, documentation updates, secret sweep, merge to main.</RemainingWork>
+    <Notes>Schedule triggers now use typeVersion 1.5; editor import confirmed. Slack Notify Error remains disabled intentionally.</Notes>
+  </meta>
+  <context>
+    <item>Workflow snapshot (`n8n/room-parent-updater.json`) now includes validated HMAC webhooks + Admin queue signing; writebacks/digests remain stubbed.</item>
+    <item>Security scrub complete; secrets replaced with placeholders across repo; HMAC helper script + validation flow confirmed via Node harness.</item>
+    <item>Prompt library, Apps Script scaffold, and sanitized MCP configs ready; Main tasks center on wiring production-grade n8n flow + HITL surfaces.</item>
+  </context>
+  <objectives>
+    <item priority="P0">Ship v1 Room Parent Agent end-to-end: ingestion → diff → HITL approvals → writebacks → WhatsApp + digests following build spec.</item>
+    <item priority="P0">Replace token approvals with HMAC contract across Sheets sidebar + email links.</item>
+    <item priority="P1">Document runbook + release notes for public GitHub readiness.</item>
+  </objectives>
+  <phases>
+    <phase name="AM Setup (07:00–09:30 PT)">
+      <step>Verify cleaned repo, refresh workflow snapshot via MCP list/get (capture ID, confirm node inventory, backup before edits).</step>
+      <step>Design revised node map: dedicated schedule triggers (2h windowed, daily, weekly), ingestion lanes (Gmail, Drive→PDF→text), diff/queue modules, approval webhooks.</step>
+      <step>Draft node-by-node patch plan (documented in `ROOM PARENT AGENT` spec annotations) before applying MCP diffs.</step>
+    </phase>
+    <phase name="Build Core Flow (09:30–13:00 PT)">
+      <step priority="P0">Implement schedule triggers: time-filtered 2h poll (08–20 PT) + daily 18:00 + weekly Sunday 18:00.</step>
+      <step priority="P0">Wire ingestion: Gmail search with lookback + dedupe, Drive PDF watcher with OCR fallback, fan-out to Gemini extractor using `prompts/extractor.txt`.</step>
+      <step priority="P0">Construct diff layer: read Sheets (`Snack`, `Allergies` read-only), Calendar (next 60d); build deterministic diff JSON (events, snack changes, allergy notes, notices) with source links + metadata.</step>
+      <step priority="P0">Generate Admin queue dataset matching schema (`WhenFound | Type | Summary | SourceLink | ApproveLink | RejectLink | Status`).</step>
+    </phase>
+    <phase name="Approvals &amp; Writebacks (13:00–16:00 PT)">
+      <step priority="P0">Swap token system for HMAC: update webhook nodes to require signature, update `Make Approval Links` (or new signer node) to precompute `sha256` header for Sheets/email links leveraging `store.approvalsHmacSecret`.</step>
+      <step priority="P0">Update Apps Script (`gas/Code.gs`) + email templates to send signed payloads; confirm 24h expiry logic resides in n8n validation.</step>
+      <step priority="P0">Implement approval processing: safe upsert to Snack sheet (idempotent by Week+Child), Calendar create/update/cancel with dedupe guard, append OpsLog entry.</step>
+      <step priority="P1">Generate WhatsApp draft from approved changes via `prompts/formatter_whatsapp.txt` and stage daily/weekly digest emails (pending + metrics) using prompt templates.</step>
+    </phase>
+    <phase name="QA &amp; Handoff (16:00–18:30 PT)">
+      <step priority="P0">Dry-run end-to-end with fixtures (1 Gmail, 1 PDF) → inspect queue, approve/reject sample items, verify sheet/calendar mutations + OpsLog.</step>
+      <step priority="P0">Re-export workflow snapshot post-changes, update documentation (README, project plan notes, handoff daily update).</step>
+      <step priority="P0">Secret sweep + checklist (`rg` scan, `.gitignore` double-check), prep GitHub release notes + instructions for resetting approvals secret after clone.</step>
+      <step priority="P1">If time: smoke-test MCP tools for diff/apply to ensure automation commands remain accurate after refactor.</step>
+    </phase>
+  </phases>
+  <risks>
+    <item priority="P0">Diff logic complexity: must avoid duplicate calendar/snack writes; mitigate with deterministic IDs and dry-run preview nodes before apply.</item>
+    <item priority="P0">HMAC signature handling: ensure Apps Script + email links remain usable post-change; test across multiple approval pathways.</item>
+    <item priority="P1">n8n schedule limitations (v1.110.1) may require conditional gating instead of cron expressions; build guard nodes to skip runs outside window.</item>
+  </risks>
+  <approvalsNeeded>
+    <item>Run MCP diff/apply tools against live workflow once patches ready (will request via CLI approvals workflow).</item>
+    <item>Potential Drive/Gmail sample pulls if new fixtures needed (requires confirming with owner before contacting live services).</item>
+  </approvalsNeeded>
+  <notes>
+    <item>Maintain sanitized placeholders in all committed artifacts; remind operator to rerun `scripts/set_approvals_secret.sh` post-clone.</item>
+    <item>Document Admin tab layout + OpsLog schema changes in README once finalized.</item>
+  </notes>
+  <progress>
+    <milestone timestamp="2025-09-22T16:31:08Z" status="recorded">
+      <title>Baseline workflow assessment</title>
+      <detail>Attempted MCP workflow list/get; blocked by missing MCP_N8N_* env placeholders. Will proceed using existing snapshot `n8n/room-parent-updater.json` and request credentials if the live refresh becomes available.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T16:33:51Z" status="recorded">
+      <title>Documented v1 node blueprint</title>
+      <detail>Added Section 4A to `Room Parent Agent Project Plan.md` capturing trigger, ingestion, diff, approval, and apply nodes to guide MCP diff work.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T16:43:33Z" status="blocked">
+      <title>MCP access requires network approval</title>
+      <detail>Loaded local secrets but external network calls (n8n MCP SSE) are blocked by sandbox; requesting approval to enable network for MCP operations.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T16:45:30Z" status="approved">
+      <title>Network access granted</title>
+      <detail>Sandbox approval enabled outbound requests; confirmed connectivity to n8n MCP SSE endpoint via curl.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T16:52:32Z" status="completed">
+      <title>Pulled fresh workflow snapshot</title>
+      <detail>Fetched workflow 5FMGLNbKrDBKJaQe via n8n public API and updated `n8n/room-parent-updater.json` for diff planning.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T16:54:45Z" status="recorded">
+      <title>Logged MCP fallback procedure</title>
+      <detail>Documented direct n8n REST workflow export/apply steps in project plan Section 4B for future reference.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T17:00:24Z" status="completed">
+      <title>Schedule layer refactored</title>
+      <detail>Deployed Main Poll Schedule + In Window? guard + Set Run Context nodes, and added daily/weekly digest triggers with placeholders via n8n API.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T17:05:59Z" status="recorded">
+      <title>Multi-agent playbook published</title>
+      <detail>Created `Multi-Agent Playbook.md` and added Section 4C to project plan with coordination guidance.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T17:26:00Z" status="in-progress">
+      <title>Coordinator handoff initiated</title>
+      <detail>Switched to branch `ds-c0-20250922`, created dedicated agent branches, and refreshed handoff meta to reflect multi-agent coordination focus.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T17:28:00Z" status="completed">
+      <title>Sanitized MCP configs restored</title>
+      <detail>Overwrote `mcp/servers.json` and `servers.json` with placeholder values to keep repo ready for branch sharing.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T18:40:00Z" status="completed">
+      <title>HMAC approvals pipeline updated</title>
+      <detail>Swapped token-based links for signed payloads: added Validate HMAC node, POST-only webhooks, and queueRow metadata with Status/Token columns.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T18:48:00Z" status="completed">
+      <title>Signature tests recorded</title>
+      <detail>Ran local Node harness to confirm valid approve flow, reject bad signatures, and catch expired timestamps; results logged for coordinator review.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T22:10:00Z" status="completed">
+      <title>HMAC validation signed off</title>
+      <detail>Approve/reject webhooks now fronted by Validate HMAC; pending store updates, Admin sheet signing, and Node harness outputs shared with A4.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T17:44:49Z" status="completed">
+      <title>Ingestion lane rebuilt</title>
+      <detail>Renamed Gmail Search, added message normalization + Drive PDF OCR chain, merged feeds, and wired extractor prompt from prompts/extractor.txt into Basic LLM Chain.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T20:53:03Z" status="completed">
+      <title>Ingestion sample payload staged</title>
+      <detail>Generated `handoff/ingestion_sample.json` using new metadata pipeline to unblock diff builder QA while Gmail/Drive creds stay offline.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T19:10:00Z" status="completed">
+      <title>Diff payload &amp; queue dataset staged</title>
+      <detail>Implemented Compile Current State + Compute Diffs nodes, staged admin_rows/admin_sheet_rows, persisted pendingApprovals static data, and logged preview JSON for downstream agents.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T19:05:00Z" status="completed">
+      <title>Diff tokens wired into HMAC links</title>
+      <detail>Make Approval Links now consumes Compute Diffs admin_rows, signs deterministic tokens, and updates store.pendingApprovals with queue/email datasets.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T19:12:00Z" status="completed">
+      <title>Approval handlers synced with pending store</title>
+      <detail>Validate Token nodes pull from store.pendingApprovals, enforce TTL, and expose apply payloads for A4 writebacks.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T21:33:29Z" status="completed">
+      <title>QA fixtures and checklist prepared</title>
+      <detail>Added ingestion/diff samples for edge cases, documented OpsLog schema + HMAC QA checklist, and placed A1/A2 on standby until approvals validation clears.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T21:57:25Z" status="completed">
+      <title>Agent status checkpoint</title>
+      <detail>A1/A2/A3 are stable; A4 cleared to implement apply path &amp; digests. Coordinated QA and config sanitization queued.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T18:15:00Z" status="completed">
+      <title>Admin queue write path wired</title>
+      <detail>Added Admin Snapshot ➜ Build Admin Queue Writes ➜ Append/Update nodes and connected static data tokens for HMAC approvals.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T19:05:00Z" status="completed">
+      <title>Writebacks &amp; messaging integration</title>
+      <detail>Hooked approval apply routes (snack/calendar), OpsLog append, WhatsApp draft generation, and digest LLM pipelines; waiting on dry-run verification.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T22:17:10Z" status="completed">
+      <title>Apply lane ready for QA</title>
+      <detail>A4 wiring complete; remaining steps are dry-run approval, documentation, workflow re-export, and Slack webhook swap.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-22T22:45:00Z" status="recorded">
+      <title>QA handoff to ops tasks</title>
+      <detail>Next actions: schedule dry-run approval (Sheets/Calendar), capture evidence, re-export workflow, and resolve placeholder Slack webhook.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-23T02:43:38Z" status="recorded">
+      <title>Dry-run + export tasks queued</title>
+      <detail>QA dry run scheduled with A4; coordinator to capture queue/OpsLog evidence, swap Slack webhook, and re-export workflow.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-23T02:44:20Z" status="completed">
+      <title>Dry-run simulated via fixtures</title>
+      <detail>Ran offline apply simulation against handoff/diff_sample*.json producing queue/ops log/calendar outputs (handoff/dry_run_simulated.json).</detail>
+    </milestone>
+    <milestone timestamp="2025-09-23T02:44:30Z" status="completed">
+      <title>Notify Error Slack disabled for QA</title>
+      <detail>Disabled Notify Error Slack node pending real webhook before production dry-run.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-23T03:15:00Z" status="completed">
+      <title>Schedule node schema corrected</title>
+      <detail>Removed invalid manualTimezone option from schedule triggers; workflow now imports without “Could not find property option” error.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-23T02:58:19Z" status="completed">
+      <title>Workflow exported to n8n</title>
+      <detail>Uploaded corrected workflow via API (PUT) and archived latest snapshot at n8n/room-parent-updater.live-20250923T025818Z.json.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-23T03:00:00Z" status="blocked">
+      <title>Live dry run still required</title>
+      <detail>API run endpoint denied (POST not allowed); manual execution in n8n UI needed to capture real QA evidence.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-23T03:00:37Z" status="completed">
+      <title>Schedule nodes simplified</title>
+      <detail>Removed options/timezone from schedule triggers and re-uploaded workflow (updated at 2025-09-23T03:00:37Z).</detail>
+    </milestone>
+    <milestone timestamp="2025-09-23T03:09:52Z" status="completed">
+      <title>Workflow sanitized for import</title>
+      <detail>Stripped resource locator metadata ("__rl" wrappers) from node parameters and re-uploaded workflow (updated 2025-09-23T03:09:51Z).</detail>
+    </milestone>
+    <milestone timestamp="2025-09-23T05:45:00Z" status="completed">
+      <title>Resource locator metadata restored</title>
+      <detail>Restored full __rl resource locator metadata from live export, rebuilt a minimal payload (name/nodes/connections/settings), and bumped Daily/Weekly Digest schedule triggers to typeVersion 1.5 before writing handoff/workflow_export_ready_fixed.json so the n8n editor stops emitting the “option” schema error.</detail>
+    </milestone>
+    <milestone timestamp="2025-09-23T03:30:00Z" status="completed">
+      <title>Schedule trigger version updated</title>
+      <detail>Bumped schedule triggers to typeVersion 1.5 and confirmed n8n editor import; sanitized export stored at handoff/workflow_export_ready_fixed.json.</detail>
+    </milestone>
+  </progress>
+</codexDailyPlan>
