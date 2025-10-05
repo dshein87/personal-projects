@@ -1,10 +1,10 @@
 <?xml version="1.0" ?>
 <codexDailyPlan date="2025-09-22" agent="Codex">
   <meta>
-    <CurrentFocus>Use fixed export (handoff/workflow_export_ready_fixed.json) for live QA and final upload.</CurrentFocus>
-    <NextSubtasks>1) Upload fixed workflow via PUT. 2) Run live dry run with Sheets/Calendar. 3) Log evidence in handoff files. 4) Sanitize configs and prepare merge.</NextSubtasks>
-    <RemainingWork>Live dry run, documentation updates, secret sweep, merge to main.</RemainingWork>
-    <Notes>Schedule triggers now use typeVersion 1.5; editor import confirmed. Slack Notify Error remains disabled intentionally.</Notes>
+    <CurrentFocus>Live end-to-end test in n8n UI with real Google services.</CurrentFocus>
+    <NextSubtasks>1) Unarchive workflow in n8n. 2) Execute workflow manually with test data. 3) Validate HMAC approval flow. 4) Log test results and push to GitHub.</NextSubtasks>
+    <RemainingWork>Live QA validation, update documentation with test results, final commit to GitHub.</RemainingWork>
+    <Notes>Workflow uploaded to n8n (ID: 5FMGLNbKrDBKJaQe) on 2025-10-05T04:52Z. Slack webhook disabled. Repository cleanup complete (hotfix branch deleted, secrets sanitized). All 25 files committed to main (a6fe196).</Notes>
   </meta>
   <context>
     <item>Workflow snapshot (`n8n/room-parent-updater.json`) now includes validated HMAC webhooks + Admin queue signing; writebacks/digests remain stubbed.</item>
@@ -190,6 +190,18 @@
     <milestone timestamp="2025-09-23T03:30:00Z" status="completed">
       <title>Schedule trigger version updated</title>
       <detail>Bumped schedule triggers to typeVersion 1.5 and confirmed n8n editor import; sanitized export stored at handoff/workflow_export_ready_fixed.json.</detail>
+    </milestone>
+    <milestone timestamp="2025-10-05T04:50:00Z" status="completed">
+      <title>Repository cleanup and commit</title>
+      <detail>Deleted hotfix-workflow-recovery branch, committed 25 files to main (a6fe196), pushed to GitHub. Secret sweep confirmed clean (all configs sanitized).</detail>
+    </milestone>
+    <milestone timestamp="2025-10-05T04:52:20Z" status="completed">
+      <title>Workflow uploaded to n8n</title>
+      <detail>Successfully uploaded handoff/workflow_export_ready_fixed.json to n8n Cloud (ID: 5FMGLNbKrDBKJaQe). Slack webhook confirmed disabled. Workflow is archived and inactive, ready for manual testing.</detail>
+    </milestone>
+    <milestone timestamp="2025-10-05T04:52:37Z" status="pending">
+      <title>Live end-to-end test</title>
+      <detail>Next step: Unarchive workflow in n8n UI and execute manually with real Gmail, Drive, Sheets, and Calendar. Validate all approval scenarios per handoff/approval_test_checklist.md.</detail>
     </milestone>
   </progress>
 </codexDailyPlan>
