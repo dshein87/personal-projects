@@ -4,7 +4,7 @@
     <CurrentFocus>Live end-to-end test in n8n UI with real Google services.</CurrentFocus>
     <NextSubtasks>1) Unarchive workflow in n8n. 2) Execute workflow manually with test data. 3) Validate HMAC approval flow. 4) Log test results and push to GitHub.</NextSubtasks>
     <RemainingWork>Live QA validation, update documentation with test results, final commit to GitHub.</RemainingWork>
-    <Notes>Workflow uploaded to n8n (ID: 5FMGLNbKrDBKJaQe) on 2025-10-05T04:52Z. Slack webhook disabled. Repository cleanup complete (hotfix branch deleted, secrets sanitized). All 25 files committed to main (a6fe196).</Notes>
+    <Notes>Workflow uploaded to n8n (ID: QyJqHziW6fupaR5H, URL: https://dshein.app.n8n.cloud/workflow/QyJqHziW6fupaR5H) on 2025-10-05T04:56Z. Slack webhook disabled. Repository cleanup complete (hotfix branch deleted, secrets sanitized). All 25 files committed to main (a6fe196).</Notes>
   </meta>
   <summary>
     <item>Repo scaffold aligned to spec: prompts, Apps Script stub, MCP config, README prompt directory (`prompts/`, `gas/Code.gs:1`, `mcp/servers.json:1`, `README.md:1`).</item>
@@ -192,9 +192,9 @@
       <title>Repository cleanup and commit</title>
       <detail>Deleted hotfix-workflow-recovery branch, committed 25 files to main (a6fe196), pushed to GitHub. Secret sweep confirmed clean (all configs sanitized).</detail>
     </milestone>
-    <milestone timestamp="2025-10-05T04:52:20Z" status="completed">
-      <title>Workflow uploaded to n8n</title>
-      <detail>Successfully uploaded handoff/workflow_export_ready_fixed.json to n8n Cloud (ID: 5FMGLNbKrDBKJaQe). Slack webhook confirmed disabled. Workflow is archived and inactive, ready for manual testing.</detail>
+    <milestone timestamp="2025-10-05T04:56:29Z" status="completed">
+      <title>Workflow uploaded to n8n (corrected)</title>
+      <detail>Successfully uploaded handoff/workflow_export_ready_fixed.json to n8n Cloud (ID: QyJqHziW6fupaR5H, URL: https://dshein.app.n8n.cloud/workflow/QyJqHziW6fupaR5H). Slack webhook confirmed disabled. Workflow is NOT archived, inactive, ready for manual testing.</detail>
     </milestone>
     <milestone timestamp="2025-10-05T04:52:37Z" status="pending">
       <title>Live end-to-end test</title>
