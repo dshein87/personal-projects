@@ -158,3 +158,15 @@ secrets/
 
 # Project-specific
 # Add any project-specific ignore patterns here
+
+# Confidential interview materials
+projects/Headway Interview/
+
+# Environment variables and local configuration
+.env
+.env.local
+.env.*.local
+*.env
+config.local.json
+**/secrets/
+**/.secrets/

@@ -1,7 +1,7 @@
 # Room Parent Agent — Codex Build Spec (v1)
 
 Audience: **Codex CLI autonomous agent** working in the project root you opened.  
-Platform: **n8n** with an installed **MCP server** (via “MCP Tools”) inside the `n8n-workflows` workspace.  
+Platform: **n8n** (external). No MCP server config is committed; add local tooling only in gitignored files.  
 Goal: Implement the *Room Parent Agent* E2E with HITL approval gates, using the exposed MCP tools and Gemini as the default LLM, without inventing unspecified details.
 
 ---
@@ -9,11 +9,7 @@ Goal: Implement the *Room Parent Agent* E2E with HITL approval gates, using the 
 ## <requirements>
 - **Do not fabricate**: If an input or shape is not explicitly available from files or tooling APIs, **query for it**; if absent, **halt** and emit a `<verify>` failure with a helpful message.
 - **Human-in-the-loop**: Never auto-post to WhatsApp or alter sources without approval.
-- **MCP tools available** (exact names):
-  - `Call_WF_apply_workflow_safe_`
-  - `Call_WF_diff_preview_`
-  - `Call_WF_get_workflow_json_`
-  - `Call_WF_list_workflows_1`
+- **MCP tools**: none committed; add local servers in `mcp/servers.local.json` if needed.
 - **LLM**: Default to **Gemini**. Keep prompts in repo under `/prompts`. Keys are placeholders only.
 - **Scope (v1)**: Gmail & Drive ingestion → LLM extract → Diff (Calendar/Sheets) → Approval (Sheets Admin tab + email links) → On approval, write updates → Prepare WhatsApp copy (manual posting).
 - **Scheduling**: Poll every **2 hours** between **08:00–20:00 PT**; send **daily** and **weekly** rollups.
@@ -51,23 +47,15 @@ Prepare environment, MCP client config, and prompt files. **Use only placeholder
 </plan>
 
 ### <task id="bootstrap.mcp">
-Ensure `/mcp/servers.json` exists and points to the lone n8n MCP server.
+Ensure `/mcp/servers.json` exists and contains only sanitized placeholders (no live MCP servers).
 <file path="./mcp/servers.json">
 {
-  "mcpServers": {
-    "n8n-mcp": {
-      "transport": "sse",
-      "url": "${MCP_N8N_BASE_URL}",        // e.g., https://<redacted>/mcp
-      "headers": {
-        "Authorization": "Bearer ${MCP_N8N_BEARER}"
-      }
-    }
-  }
+  "mcpServers": {}
 }
 </file>
 <verify>
-- Fail if `${MCP_N8N_BASE_URL}` or `${MCP_N8N_BEARER}` are literal strings at runtime.
-- Make a test call to `Call_WF_list_workflows_1`; expect HTTP 2xx and non-empty JSON.
+- Fail if any real server entries are committed.
+- Local overrides go in `mcp/servers.local.json` (gitignored).
 </verify>
 </task>
 
@@ -107,7 +95,7 @@ Write README skeleton.
 
 **HITL-first** agent that consolidates class communications (Gmail/Drive), extracts structured updates (Gemini), diffs against Sheets/Calendar, and produces an approval queue. On approval, it writes updates and prepares WhatsApp text (manual send).
 
-- MCP tools (from n8n): `Call_WF_list_workflows_1`, `Call_WF_get_workflow_json_`, `Call_WF_diff_preview_`, `Call_WF_apply_workflow_safe_`
+- MCP tools: none committed; add project-specific servers via `mcp/servers.local.json`.
 - Scheduling: Every 2 hours (08:00–20:00 PT), plus daily/weekly digests.
 - Secrets: Environment placeholders only; rotate real keys in n8n.
 ]]></file>
@@ -120,10 +108,9 @@ Discover the active n8n workflow JSON; never assume node IDs. Work in diff/patch
 </plan>
 
 ### <task id="wf.list">
-List workflows via MCP and select the primary Room Parent workflow.
-<mcp-call server="n8n-mcp" tool="Call_WF_list_workflows_1">
-{}
-</mcp-call>
+List workflows manually from n8n and select the primary Room Parent workflow.
+- Use the n8n UI (Workflows list) or a REST call to enumerate available workflows.
+- Capture the workflow identifier for subsequent steps.
 <verify>
 - Choose a single workflow whose name contains a stable substring like "room" AND "parent" (case-insensitive). If multiple, **halt** and emit options.
 - Capture its identifier for subsequent calls: `<var id="WF_ID">...</var>`
@@ -132,9 +119,7 @@ List workflows via MCP and select the primary Room Parent workflow.
 
 ### <task id="wf.get">
 Fetch workflow JSON.
-<mcp-call server="n8n-mcp" tool="Call_WF_get_workflow_json_">
-{ "workflow_id": "${WF_ID}" }
-</mcp-call>
+- Use the n8n UI to export the workflow or call the REST endpoint with `${WF_ID}`.
 <verify>
 - Validate JSON structure with `nodes[]` and `connections` present.
 - Store snapshot at `./n8n/room-parent-updater.json` (timestamped copy).
@@ -171,7 +156,8 @@ Bring the workflow to the **v1 functional baseline** using safe diffs, without i
 
 ### <task id="wf.diff.preview">
 Request a diff preview that brings the workflow to the baseline above.
-<mcp-call server="n8n-mcp" tool="Call_WF_diff_preview_">
+Use the n8n API (or UI) to request a diff preview with a payload similar to:
+```json
 {
   "workflow_id": "${WF_ID}",
   "baseline_requirements": {
@@ -183,7 +169,7 @@ Request a diff preview that brings the workflow to the baseline above.
     "scheduling": { "every_2h_8to20_pt": true, "daily_18pt": true, "weekly_sun_18pt": true }
   }
 }
-</mcp-call>
+```
 <verify>
 - Expect a machine-readable diff (added/removed/changed nodes and credentials usage). If the tool returns “insufficient context,” **halt** and surface the missing elements.
 </verify>
@@ -191,13 +177,14 @@ Request a diff preview that brings the workflow to the baseline above.
 
 ### <task id="wf.apply.safe">
 Apply the diff **safely**.
-<mcp-call server="n8n-mcp" tool="Call_WF_apply_workflow_safe_">
+Apply the diff safely via the n8n API/UI using a payload like:
+```json
 {
   "workflow_id": "${WF_ID}",
   "diff": "${OUTPUT_OF_wf.diff.preview}",
   "safety": { "dry_run": false, "backup_before_apply": true }
 }
-</mcp-call>
+```
 <verify>
 - Confirm apply result indicates success and the workflow validates.
 - If “Referenced node doesn’t exist” or similar appears, see Diagnostics § below and retry after fetching the fresh JSON.
