@@ -1,11 +1,3 @@
 {
-  "mcpServers": {
-    "n8n-mcp": {
-      "transport": "sse",
-      "url": "${MCP_N8N_BASE_URL}",
-      "headers": {
-        "Authorization": "Bearer ${MCP_N8N_BEARER}"
-      }
-    }
-  }
+  "mcpServers": {}
 }

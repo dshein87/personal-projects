@@ -1,20 +1,37 @@
-# Node
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Room Parent Agent - Project Gitignore
+# Keeps sensitive data out of version control
 
-# OS artifacts
-.DS_Store
-.claude
-
-# Local configs / secrets
+# Environment and secrets
 .env
-.env.*
-mcp/servers.local.json
-scripts/*.local
-scripts/*_secret*
+.env.local
+*.local.json
 
-# Workflow exports / temps
-n8n/*.backup.json
-.tmp/
+# Workflow backups and development copies (may contain unsanitized data)
+handoff/workflow_READY_TO_UPLOAD.json
+handoff/workflow_export_ready.json
+handoff/*.backup*
+handoff/*.presanitize
+n8n/room-parent-updater.live-*.json
+n8n/*.backup*
+
+# Development and debug files
+.gemini-clipboard/
+DEBUGGING_SESSION_*.md
+DRIVE_DOWNLOAD_DEBUG_GUIDE.md
+handoff/STATUS_*.md
+
+# Scripts that may contain credentials
+scripts/
+
+# MCP server configs with credentials
+mcp/servers.json.sanitized
+servers.json.sanitized
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# macOS
+.DS_Store

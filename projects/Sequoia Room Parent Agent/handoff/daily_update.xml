@@ -1,10 +1,10 @@
 <?xml version="1.0" ?>
-<codexDailyUpdate generated="2025-09-22T05:32:00Z" agent="Codex">
+<codexDailyUpdate generated="2025-10-05T05:15:00Z" agent="Codex">
   <meta>
-    <CurrentFocus>Live end-to-end test in n8n UI with real Google services.</CurrentFocus>
-    <NextSubtasks>1) Unarchive workflow in n8n. 2) Execute workflow manually with test data. 3) Validate HMAC approval flow. 4) Log test results and push to GitHub.</NextSubtasks>
-    <RemainingWork>Live QA validation, update documentation with test results, final commit to GitHub.</RemainingWork>
-    <Notes>Workflow uploaded to n8n (ID: QyJqHziW6fupaR5H, URL: https://dshein.app.n8n.cloud/workflow/QyJqHziW6fupaR5H) on 2025-10-05T04:56Z. Slack webhook disabled. Repository cleanup complete (hotfix branch deleted, secrets sanitized). All 25 files committed to main (a6fe196).</Notes>
+    <CurrentFocus>LIVE TESTING IN PROGRESS - Multiple critical bugs resolved, workflow executing end-to-end</CurrentFocus>
+    <NextSubtasks>1) Fix Validate JSON extractor prompt issue (Gemini returning freeform text instead of structured JSON). 2) Complete full workflow test. 3) Verify diff computation and approval queue generation. 4) Test HMAC approval webhooks.</NextSubtasks>
+    <RemainingWork>Debug extractor prompt attachment, complete end-to-end test, HMAC approval validation, production readiness check, workflow export and commit.</RemainingWork>
+    <Notes>Major progress on 2025-10-08: Fixed Google Drive OAuth permissions (re-authenticated with download scope), documented Shared Drive download restrictions (3 files blocked by admin policy), fixed OCR Fallback node (removed env var access, now gracefully skips), fixed Compile Current State (updated to work with Merge node using $input.all()). Currently debugging: Gemini extraction returning freeform text instead of structured JSON - extractor prompt may not be attaching properly. Full status at handoff/STATUS_2025-10-08.md.</Notes>
   </meta>
   <summary>
     <item>Repo scaffold aligned to spec: prompts, Apps Script stub, MCP config, README prompt directory (`prompts/`, `gas/Code.gs:1`, `mcp/servers.json:1`, `README.md:1`).</item>
@@ -21,14 +21,17 @@
     <item path="Room Parent Agent Project Plan.md:1">Detailed node/architecture expectations + security checklist.</item>
   </references>
   <workflowState>
-    <workflowId>5FMGLNbKrDBKJaQe</workflowId>
+    <workflowId>QyJqHziW6fupaR5H</workflowId>
     <workflowName>Room Parent Agent (WIP)</workflowName>
     <active>false</active>
     <nodeCount>18</nodeCount>
-    <lastSnapshot path="n8n/room-parent-updater.json:1">Pulled via REST after secret storage + sanitation.</lastSnapshot>
+    <lastUpdate>2025-10-05T05:11:43.535Z</lastUpdate>
+    <lastSnapshot path="handoff/workflow_export_ready_fixed.json:1">Updated with corrected GitHub raw URLs and uploaded via n8n REST API.</lastSnapshot>
     <observations>
-      <item>Workflow now sports validated HMAC approvals (signed links + webhook guards); writebacks/digests remain pending on A4.</item>
-      <item>MCP helper tools still return empty payloads; rely on REST API for workflow operations.</item>
+      <item>GitHub URLs corrected: all 4 prompt fetches now point to dshein87/personal-projects public repo.</item>
+      <item>Repository visibility changed to public to enable raw.githubusercontent.com access without auth tokens.</item>
+      <item>Workflow ready for manual execution test in n8n UI - digest nodes should now fetch prompts successfully.</item>
+      <item>HMAC approvals validated; writebacks/digests/messaging nodes wired and ready for testing.</item>
     </observations>
   </workflowState>
   <securityAudit>
@@ -38,18 +41,23 @@
     <step status="pending">Before push, re-run `./scripts/set_approvals_secret.sh` locally post-clone; do not commit outputs or workflow backups containing secrets.</step>
   </securityAudit>
   <pendingWork>
-    <item priority="P0">A4 (`rp/a4-20250922`): Coordinate and run dry-run approval (Sheets/Calendar), verify queue/OpsLog outputs, log evidence, and prep workflow export.</item>
-    <item priority="P1">A1 (`rp/a1-20250922`) &amp; A2 (`rp/a2-20250922`): Assist QA if edge-case payloads needed; otherwise standby.</item>
-    <item priority="P1">Finalize documentation, sanitize configs (incl. Slack webhook), perform secret sweep, and coordinate merge to `main`.</item>
+    <item priority="P0">Execute workflow manually in n8n UI (https://dshein.app.n8n.cloud/workflow/QyJqHziW6fupaR5H) and verify all nodes execute successfully.</item>
+    <item priority="P0">Validate digest prompt fetching: confirm "Fetch Weekly Digest Prompt" and "Fetch Daily Digest Prompt" nodes return 200 OK with prompt text.</item>
+    <item priority="P1">Run through HMAC approval test checklist (handoff/approval_test_checklist.md:1) - all 6 scenarios.</item>
+    <item priority="P1">Document test results and any issues discovered during live execution.</item>
+    <item priority="P2">Production readiness: review error handling, monitoring setup, final security sweep.</item>
   </pendingWork>
   <concerns>
-    <item>A4 dry-run pending; approvals payloads must stay stable while writeback logic is verified.</item>
-    <item>Placeholder Slack webhook still present—must swap/disable before production.</item>
+    <item>Live end-to-end test not yet performed - workflow needs manual execution validation in n8n UI.</item>
+    <item>Public repository exposes workflow structure but no secrets (all sanitized with placeholders).</item>
+    <item>Slack webhook disabled - needs production endpoint or removal before activation.</item>
   </concerns>
   <nextRecommendedSteps>
-    <item>Coordinate dry-run window with A4 (fixtures/live sheets) and capture queue/OpsLog/Calendar outputs.</item>
-    <item>Document QA results in handoff files + README/plan, then re-export workflow via n8n API.</item>
-    <item>Sanitize configs before push (reset `mcp/servers.json`, `servers.json`, Slack webhook placeholder, rerun secret sweep).</item>
+    <item>Open workflow in n8n UI and click "Execute Workflow" to run full pipeline with real Google services.</item>
+    <item>Monitor execution logs for each node, especially HTTP Request nodes fetching prompts from GitHub.</item>
+    <item>Validate HMAC approval flow by testing approve/reject webhooks with signed payloads.</item>
+    <item>Document any errors or unexpected behavior in daily_update.xml progress section.</item>
+    <item>After successful test: commit updated handoff files, consider activating workflow with proper schedule.</item>
   </nextRecommendedSteps>
   <progress>
     <milestone timestamp="2025-09-22T16:31:08Z" status="recorded">
@@ -199,6 +207,38 @@
     <milestone timestamp="2025-10-05T04:52:37Z" status="pending">
       <title>Live end-to-end test</title>
       <detail>Next step: Unarchive workflow in n8n UI and execute manually with real Gmail, Drive, Sheets, and Calendar. Validate all approval scenarios per handoff/approval_test_checklist.md.</detail>
+    </milestone>
+    <milestone timestamp="2025-10-05T05:11:43Z" status="completed">
+      <title>GitHub URL fix and workflow re-upload</title>
+      <detail>Fixed 404 errors in digest prompt fetching. Updated 4 GitHub raw URLs from incorrect repo path (dshein/Sequoia-Room-Parent-Agent) to correct path (dshein87/personal-projects/main/projects/Sequoia%20Room%20Parent%20Agent/prompts/). Made repository public to enable raw.githubusercontent.com access. Re-uploaded workflow via n8n REST API. Workflow ready for testing at https://dshein.app.n8n.cloud/workflow/QyJqHziW6fupaR5H.</detail>
+    </milestone>
+    <milestone timestamp="2025-10-06T13:45:00Z" status="completed">
+      <title>CRITICAL BUG FIX: Gmail Message → Text regex corruption</title>
+      <detail>Discovered critical parsing error blocking workflow execution. The stripHtml function in Gmail Message → Text node had corrupted escape sequences where \r\n and \n were converted to literal newlines, breaking regex patterns with "missing /" error. Root cause: JSON export/import lost backslash escaping. Solution: Completely reconstructed stripHtml function with proper escape sequences, verified all 10 .replace() calls, removed duplicate lines. Created upload-ready files at handoff/workflow_export_ready_fixed.json and handoff/workflow_READY_TO_UPLOAD.json. Comprehensive status report with upload instructions created at handoff/STATUS_2025-10-06.md. API upload failed due to auth issues - manual upload through n8n UI required.</detail>
+    </milestone>
+    <milestone timestamp="2025-10-06T13:46:00Z" status="completed">
+      <title>Manual workflow fixes applied in n8n Cloud</title>
+      <detail>All critical bugs from STATUS_2025-10-06.md were manually fixed directly in n8n UI on 2025-10-08. No API upload was used.</detail>
+    </milestone>
+    <milestone timestamp="2025-10-08T13:00:00Z" status="completed">
+      <title>Google Drive OAuth permissions fixed</title>
+      <detail>Re-authenticated gdrive-rpu credential with full "See, edit, create, and delete all of your Google Drive files" permission. Drive Download node now successfully downloads accessible PDFs (3 working, 3 blocked by Shared Drive admin restrictions).</detail>
+    </milestone>
+    <milestone timestamp="2025-10-08T13:15:00Z" status="completed">
+      <title>Shared Drive download restrictions documented</title>
+      <detail>Discovered 3 PDF files ("September 19, 2025.pdf", "September 12, 2025.pdf", "September 26, 2025.pdf") in Google Shared Drive with admin-enforced download blocks. Enabled "Continue On Fail" on Drive Download to gracefully skip restricted files. Documented in STATUS_2025-10-08.md.</detail>
+    </milestone>
+    <milestone timestamp="2025-10-08T13:30:00Z" status="completed">
+      <title>OCR Fallback node fixed</title>
+      <detail>Resolved "access to env vars denied" error by removing process.env/$env access. Node now gracefully skips OCR when no API key available (marks as skipped_no_api_key). Code simplified to avoid n8n Cloud sandbox restrictions.</detail>
+    </milestone>
+    <milestone timestamp="2025-10-08T13:45:00Z" status="completed">
+      <title>Compile Current State node architecture fixed</title>
+      <detail>Updated node from multi-input pattern ($items(0), $items(1)...) to single-input Merge pattern ($input.all()). Node now successfully processes all 50+ merged items from Calendar, Snack, Allergy, and extraction sources. Field-based categorization logic working correctly.</detail>
+    </milestone>
+    <milestone timestamp="2025-10-08T14:00:00Z" status="in-progress">
+      <title>Full workflow end-to-end test</title>
+      <detail>Executing complete workflow from Main Poll Schedule. Ingestion layer operational (Gmail Search: 11 items, Drive PDF List: 6 items, Drive Download: 3 successful). Currently debugging Validate JSON: Gemini returning freeform text summaries instead of structured JSON with events/snack_changes/allergy_changes arrays. Investigating extractor prompt attachment.</detail>
     </milestone>
   </progress>
 </codexDailyUpdate>

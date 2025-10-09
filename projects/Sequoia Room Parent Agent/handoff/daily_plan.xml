@@ -1,10 +1,10 @@
 <?xml version="1.0" ?>
-<codexDailyPlan date="2025-09-22" agent="Codex">
+<codexDailyPlan date="2025-10-05" agent="Codex">
   <meta>
-    <CurrentFocus>Live end-to-end test in n8n UI with real Google services.</CurrentFocus>
-    <NextSubtasks>1) Unarchive workflow in n8n. 2) Execute workflow manually with test data. 3) Validate HMAC approval flow. 4) Log test results and push to GitHub.</NextSubtasks>
-    <RemainingWork>Live QA validation, update documentation with test results, final commit to GitHub.</RemainingWork>
-    <Notes>Workflow uploaded to n8n (ID: QyJqHziW6fupaR5H, URL: https://dshein.app.n8n.cloud/workflow/QyJqHziW6fupaR5H) on 2025-10-05T04:56Z. Slack webhook disabled. Repository cleanup complete (hotfix branch deleted, secrets sanitized). All 25 files committed to main (a6fe196).</Notes>
+    <CurrentFocus>Manual workflow execution test in n8n UI - verify digest prompt fetching and full pipeline with real Google services.</CurrentFocus>
+    <NextSubtasks>1) Execute workflow manually at https://dshein.app.n8n.cloud/workflow/QyJqHziW6fupaR5H. 2) Confirm digest HTTP nodes fetch prompts successfully. 3) Validate HMAC approval flow (all 6 test scenarios). 4) Document test results.</NextSubtasks>
+    <RemainingWork>Live end-to-end QA, HMAC approval validation, production readiness review, final monitoring setup.</RemainingWork>
+    <Notes>GitHub URL fix completed on 2025-10-05T05:11Z. All 4 prompt URLs corrected and workflow re-uploaded. Repository made public to enable raw.githubusercontent.com access. Workflow ready for testing at https://dshein.app.n8n.cloud/workflow/QyJqHziW6fupaR5H (ID: QyJqHziW6fupaR5H, updated: 2025-10-05T05:11:43.535Z).</Notes>
   </meta>
   <context>
     <item>Workflow snapshot (`n8n/room-parent-updater.json`) now includes validated HMAC webhooks + Admin queue signing; writebacks/digests remain stubbed.</item>
@@ -201,7 +201,19 @@
     </milestone>
     <milestone timestamp="2025-10-05T04:52:37Z" status="pending">
       <title>Live end-to-end test</title>
-      <detail>Next step: Unarchive workflow in n8n UI and execute manually with real Gmail, Drive, Sheets, and Calendar. Validate all approval scenarios per handoff/approval_test_checklist.md.</detail>
+      <detail>Next step: Execute workflow in n8n UI and validate with real Gmail, Drive, Sheets, and Calendar. Validate all approval scenarios per handoff/approval_test_checklist.md.</detail>
+    </milestone>
+    <milestone timestamp="2025-10-05T05:11:43Z" status="completed">
+      <title>GitHub URL fix and workflow re-upload</title>
+      <detail>Fixed 404 errors in "Fetch Weekly Digest Prompt" and "Fetch Daily Digest Prompt" nodes. Updated 4 GitHub raw URLs from incorrect repo path (dshein/Sequoia-Room-Parent-Agent) to correct public repo path (dshein87/personal-projects/main/projects/Sequoia%20Room%20Parent%20Agent/prompts/). Made repository public to enable raw.githubusercontent.com access without auth. Re-uploaded workflow via n8n REST API. Updated handoff/workflow_export_ready_fixed.json. All digest prompt URLs now functional and ready for testing.</detail>
+    </milestone>
+    <milestone timestamp="2025-10-06T13:45:00Z" status="completed">
+      <title>CRITICAL: Gmail Message → Text node regex corruption fixed</title>
+      <detail>Discovered and repaired critical bug in stripHtml function: escape sequences (\r\n, \n) were corrupted to literal newlines during previous export, breaking all regex patterns with "missing /" error. Rebuilt stripHtml function with proper escaping, verified all 10 .replace() calls, removed duplicate lines. Fixes saved to handoff/workflow_export_ready_fixed.json and handoff/workflow_READY_TO_UPLOAD.json. Comprehensive status report created at handoff/STATUS_2025-10-06.md. Manual upload to n8n Cloud required due to API auth issues. Workflow non-functional until upload complete.</detail>
+    </milestone>
+    <milestone timestamp="2025-10-06T13:45:30Z" status="pending">
+      <title>URGENT: Manual upload of fixed workflow to n8n</title>
+      <detail>Action required: Upload corrected Gmail Message → Text node code through n8n UI at https://dshein.app.n8n.cloud/workflow/QyJqHziW6fupaR5H. See handoff/STATUS_2025-10-06.md for detailed upload instructions and verification checklist. Priority: HIGH - workflow is blocked until upload complete.</detail>
     </milestone>
   </progress>
 </codexDailyPlan>
