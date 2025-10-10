@@ -1,0 +1,12 @@
+# Weekend Activity Planner - Rating UI Dependencies
+
+# Core
+streamlit>=1.28.0
+pandas>=2.0.0
+python-dotenv>=1.0.0
+
+# Database
+supabase>=2.0.0
+
+# Date handling
+python-dateutil>=2.8.2

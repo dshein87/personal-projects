@@ -1,0 +1,116 @@
+# Weekend Activity Planner - Project-Specific Gitignore
+
+# Environment variables and secrets (CRITICAL - NEVER COMMIT)
+.env
+.env.local
+.env.*.local
+*.env
+.env.*
+!.env.example
+
+# API Keys and secrets
+secrets/
+.secrets/
+*.key
+*.pem
+credentials.json
+service-account*.json
+
+# Supabase credentials
+supabase-credentials.json
+.supabase/
+
+# OAuth tokens
+tokens/
+*.token
+refresh_token.json
+spotify_tokens.json
+google_tokens.json
+
+# Database files (local development)
+*.db
+*.sqlite
+*.sqlite3
+rating-ui/data/*.db
+rating-ui/data/*.sqlite
+
+# Python (Streamlit, scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node.js (MCP servers)
+node_modules/
+npm-debug.log*
+yarn-error.log*
+package-lock.json
+.npm
+dist/
+build/
+*.tsbuildinfo
+
+# TypeScript
+*.js.map
+*.d.ts.map
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+*.tmp
+
+# n8n exports with sensitive data
+n8n-workflows/*-with-credentials.json
+n8n-workflows/backup/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Build artifacts
+dist/
+build/
+out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Session-specific notes (keep in building/session-logs/)
+notes-private.md
+scratch.md
+
+# Local configuration overrides
+config.local.json
+settings.local.json
+
+# Keep example and template files
+!.env.example
+!config.example.json
+!template.*
