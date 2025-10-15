@@ -293,14 +293,93 @@ The MCP validation bug was caught because we:
 ## 🚀 Next Steps
 
 1. ✅ Remove buggy MCP from `.mcp.json`
-2. ⏸️ Create first working workflow via REST API
-3. ⏸️ Test with simple HTTP Request
-4. ⏸️ Add Supabase query logic
-5. ⏸️ Integrate WhatsApp messaging
-6. ⏸️ Deploy to production schedule
+2. ✅ Create first working workflow via REST API
+3. ✅ Add Supabase query logic with 5-component scoring algorithm
+4. ⏸️ Test workflow manually in n8n GUI
+5. ⏸️ Add restaurant recommendations (optional for v1)
+6. ⏸️ Integrate WhatsApp messaging (when API approved)
+7. ⏸️ Activate workflow for production
+
+---
+
+## 📊 Implemented Workflow: Weekly Activity Suggestions
+
+**Workflow ID:** `wRRp1fTwNzOHr9rY`
+**Project:** Weekly Activity Planner (`XoTYV1MmnDfn9HAv`)
+**Status:** Built, ready for testing
+**Schedule:** Every Thursday at 12:00 PM (cron: `0 12 * * 4`)
+
+### Workflow Structure
+
+```
+1. Schedule Trigger (n8n-nodes-base.scheduleTrigger)
+   ↓
+2. Query Activities & Score (n8n-nodes-base.code)
+   - Queries Supabase activities table
+   - Queries visits table for novelty scoring
+   - Applies 5-component algorithm:
+     * Rating: 40% weight
+     * Drive time: 20% weight (exponential decay >30 min)
+     * Novelty: 30% weight (days since last visit)
+     * Age match: 5% weight (ages 3-5)
+     * Weather: 5% weight (outdoor preference)
+   - Returns top 3 activities
+   ↓
+3. Output Message (n8n-nodes-base.set)
+   - Formats WhatsApp-ready message
+   - Includes: name, city, drive time, rating, description
+```
+
+### Scoring Algorithm Details
+
+```javascript
+// 1. Rating score (40%)
+ratingScore = (avg_rating / 5.0) * 0.4
+
+// 2. Drive time score (20%)
+if (drive_time <= 30 min):
+  driveScore = (30 - drive_time) / 30 * 0.2
+else:
+  driveScore = exp(-(drive_time - 30) / 20) * 0.2
+
+// 3. Novelty score (30%)
+daysSince = days since last visit (or 999 if never)
+noveltyScore = min(daysSince / 30, 1.0) * 0.3
+
+// 4. Age match (5%)
+ageMatchScore = (age_min <= 3 AND age_max >= 5) ? 0.05 : 0
+
+// 5. Weather score (5%)
+weatherScore = outdoor ? 0.05 : 0.025
+```
+
+### Example Output
+
+```
+🎉 *Weekend Activity Suggestions* 🎉
+
+Here are your top 3 activities for this weekend:
+
+1. *Frog Park* (Oakland)
+   📍 8 min drive
+   ⭐ 4.8/5
+   Large playground with bike paths and weekly farmers market
+
+2. *Lawrence Hall of Science* (Berkeley)
+   📍 25 min drive
+   ⭐ 4.6/5
+   Interactive science museum with hands-on exhibits
+
+3. *Adventure Playground* (Berkeley)
+   📍 22 min drive
+   ⭐ 4.7/5
+   Creative messy play with building materials and art
+
+Have a great weekend! 🌟
+```
 
 ---
 
 **Last Updated:** 2025-10-15
-**Status:** Ready to build workflows
+**Status:** Workflow logic complete, ready for testing
 **Approach Validated:** ✅ Working
