@@ -51,8 +51,13 @@ Run these checks:
 ls -la .env
 
 # 2. Verify required keys are present (grep for key names, not values!)
+# Phase 1 (Supabase):
 grep -E "^(SUPABASE_URL|SUPABASE_ANON_KEY|DATABASE_PASSWORD|SUPABASE_PROJECT_REF)" .env | wc -l
 # Should return 4 for Phase 1 minimum
+
+# Phase 3 (n8n):
+grep -E "^(N8N_HOST|N8N_API_KEY)" .env | wc -l
+# Should return 2 for Phase 3 automation
 
 # 3. Verify .env is gitignored
 git check-ignore .env
@@ -66,13 +71,17 @@ git check-ignore .env
 
 **Status:** ✅ Ready / ⚠️ Missing keys / ❌ Not found
 
-**Phase 1 Required Keys:**
+**Phase 1 (Database) - Required:**
 - SUPABASE_URL: [✓ Found / ✗ Missing]
 - SUPABASE_ANON_KEY: [✓ Found / ✗ Missing]
 - SUPABASE_SERVICE_ROLE_KEY: [✓ Found / ✗ Missing]
 - DATABASE_PASSWORD: [✓ Found / ✗ Missing]
 - SUPABASE_PROJECT_REF: [✓ Found / ✗ Missing]
 - SUPABASE_ACCESS_TOKEN: [✓ Found / ✗ Missing]
+
+**Phase 3 (Automation) - Required:**
+- N8N_HOST: [✓ Found / ✗ Missing]
+- N8N_API_KEY: [✓ Found / ✗ Missing]
 
 **Git Safety:** .env is [✓ Ignored / ⚠️ NOT IGNORED - FIX NOW!]
 ```

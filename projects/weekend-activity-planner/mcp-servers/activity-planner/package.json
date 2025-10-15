@@ -1,0 +1,24 @@
+{
+  "name": "@weekend-planner/activity-planner",
+  "version": "1.0.0",
+  "description": "Activity Planner MCP server - kid activity recommendations with multi-component scoring",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js"
+  },
+  "keywords": ["mcp", "activity-planner", "weekend-planner", "activities"],
+  "author": "David Shein",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0"
+  }
+}
