@@ -1,395 +1,248 @@
-# 📚 Documentation & Handoff Command
+# /document - End-of-Session Documentation
 
-You are tasked with creating a comprehensive project documentation update and session handoff. This command should be run at the end of a working session to ensure perfect continuity for the next session.
+**Purpose:** Update all project documentation at the end of a work session to capture progress and maintain context continuity.
 
-## 🎯 Mission
-
-Create documentation that allows someone (including future David) to:
-1. Understand exactly what was accomplished this session
-2. Know precisely what to do next (with exact commands)
-3. Understand any problems encountered and how they were solved
-4. Pick up the project immediately without confusion
-5. Learn from decisions and discoveries made
-
-## ⚖️ Proportionality Principle
-
-**Match documentation detail to session significance:**
-- **Minor session** (< 1 hour, simple changes): Brief session log, minimal updates
-- **Medium session** (1-3 hours, feature work): Standard documentation
-- **Major session** (> 3 hours, milestone): Comprehensive documentation
-
-**Don't over-document:** If you only fixed a typo, don't write a 5-page report.
+**When to use:** At the END of every significant work session (>30 min of work).
 
 ---
 
-## 📋 Required Actions
+## Instructions for Claude Code
 
-### 0. CHECK WHAT EXISTS FIRST
+When this command is invoked, perform these steps:
 
-Before updating files, verify they exist:
-- `building/session-logs/` directory (create if missing)
-- `building/PROGRESS.md` (should exist)
-- `NEXT-STEPS.md` (should exist)
-- `START-HERE.md` (should exist)
-- `building/ISSUES.md` (may need creation)
-- `building/DECISIONS.md` (may need creation)
+### Step 1: Assess Session Significance
 
-**Only update files that exist.** Don't create new top-level documentation files unless explicitly needed.
+Determine session type based on work done:
 
----
+- **Minor session** (<30 min, small changes) - Brief updates only
+- **Standard session** (30min-2hrs, feature work) - Standard documentation
+- **Major session** (>2hrs or milestone) - Comprehensive documentation
 
-### 1. ANALYZE THE SESSION
+### Step 2: Update PROGRESS.md
 
-Review the entire conversation and identify:
+1. Read current building/PROGRESS.md
+2. Update:
+   - Last updated date (today)
+   - Mark completed tasks as [x]
+   - Update progress percentages for relevant phases
+   - Add any new blockers discovered
+   - Update "Current Blockers" section
+   - Refresh "Success Metrics for Next Week" if needed
+3. Preserve all other content
 
-**Accomplishments:**
-- What features were built or configured?
-- What problems were solved?
-- What files were created or modified?
-- What tools were installed?
-- What database changes were made?
-- What tests were run?
+**Critical:** Update "Last comprehensive review" date at bottom.
 
-**Issues Encountered:**
-- What errors occurred?
-- How were they resolved?
-- What didn't work as expected?
-- What workarounds were needed?
-- What bugs were discovered?
+### Step 3: Create Session Log
 
-**Decisions Made:**
-- Why were certain approaches chosen?
-- What alternatives were considered?
-- What trade-offs were made?
-- What was deferred for later?
+Create: `building/session-logs/YYYY-MM-DD-brief-description.md`
 
-**Configuration Changes:**
-- What credentials were added?
-- What .env variables were set?
-- What dependencies were installed?
-- What APIs were configured?
+**Template for session log:**
 
-**Next Steps Identified:**
-- What is the immediate next action?
-- What are the next 3-5 steps?
-- What is blocked or waiting?
-- What needs testing?
-
-### 2. CREATE SESSION LOG
-
-Create a new file: `building/session-logs/YYYY-MM-DD-session-description.md`
-
-Use today's date and a short descriptive name (e.g., `2025-10-09-supabase-setup.md`)
-
-**⚠️ IMPORTANT:** Only include sections that are relevant to this session. Skip sections with nothing to report.
-
-**Session Log Structure (use what's needed):**
 ```markdown
-# Session Log: [Short Description]
+# Session Log: YYYY-MM-DD - Brief Description
 
 **Date:** YYYY-MM-DD
-**Duration:** [Approximate time]
-**Phase:** [Current project phase]
-**Status:** [Overall session outcome: Success/Blocked/In Progress]
+**Duration:** ~X hours
+**Phase:** [Current phase from PROGRESS.md]
+**Status:** [Success / Partial / Blocked]
 
 ---
 
 ## 🎯 Session Goals
 
-[What we set out to accomplish]
+[What you set out to accomplish]
 
 ---
 
 ## ✅ Accomplishments
 
-[Detailed list of what was completed, with file paths and specifics]
+[What was actually completed]
 
 ### Files Created/Modified
-- `path/to/file.ext` - [What changed and why]
-- `path/to/file.ext` - [What changed and why]
-
-### Configuration Changes
-- [Environment variables added]
-- [Dependencies installed]
-- [Services configured]
-
-### Database Changes
-- [Schema updates]
-- [Data loaded]
-- [Tables created]
+- file1.ext - [Brief description of changes]
+- file2.ext - [Brief description of changes]
 
 ---
 
 ## 🐛 Issues Encountered
 
-### Issue 1: [Brief description]
-**Problem:** [Detailed explanation]
-**Cause:** [Root cause if known]
-**Solution:** [How it was resolved]
-**Prevention:** [How to avoid in future]
-
-[Repeat for each issue]
+[If any - use format from ISSUES.md template]
 
 ---
 
 ## 💡 Key Learnings
 
-- [Important insights discovered]
-- [Patterns identified]
-- [Best practices learned]
-- [Gotchas to remember]
-
----
-
-## 🎯 Decisions Made
-
-### Decision 1: [Topic]
-**Context:** [Why this decision was needed]
-**Options Considered:**
-1. [Option A] - Pros/Cons
-2. [Option B] - Pros/Cons
-**Chosen:** [Selected option]
-**Rationale:** [Why this was chosen]
-
-[Repeat for each decision]
+[Technical insights, decisions made, patterns discovered]
 
 ---
 
 ## 📊 Current State
 
 **Completed:**
-- ✅ [Item 1]
-- ✅ [Item 2]
+- [x] Task 1
+- [x] Task 2
 
 **In Progress:**
-- 🟡 [Item 1] - [Current status]
+- [ ] Task 3 (50% done)
 
 **Blocked:**
-- ⏸️ [Item 1] - [What's blocking it]
-
-**Not Started:**
-- ⏸️ [Item 1]
+- [ ] Task 4 (waiting on X)
 
 ---
 
 ## 🚀 Next Steps
 
-### Immediate Next Action (Start Here!)
-**Action:** [Exact action to take]
-**Time:** [Estimated time]
-**Command:**
-```bash
-[Exact command to run]
-```
-**Expected Outcome:** [What should happen]
+[What should be done in the next session - ordered by priority]
 
-### Following Steps (In Order)
-1. **[Action 1]** ([Time estimate])
-   - Command: `[exact command]`
-   - Goal: [What this accomplishes]
+1. **Immediate:** [Highest priority task]
+2. **Following:** [Next task after that]
+3. **Then:** [Third priority]
 
-2. **[Action 2]** ([Time estimate])
-   - Command: `[exact command]`
-   - Goal: [What this accomplishes]
-
-[Continue for 3-5 steps]
+**Time Estimate:** [Hours for next session's work]
 
 ---
 
 ## 📁 Important File Paths
 
-- **Config:** `path/to/.env` - [Description]
-- **Database:** `path/to/schema.sql` - [Description]
-- **Main Code:** `path/to/main.py` - [Description]
-[List all relevant paths]
+[Any new files or paths relevant to next session]
 
 ---
 
-## 🔑 Credentials & Configuration
-
-**⚠️ CRITICAL: NEVER include actual credentials, passwords, API keys, or secrets.**
-
-**Document locations only:**
-- Supabase: Project URL stored in `.env`, Dashboard at https://supabase.com/dashboard/project/[ref]
-- Other services: Status and where credentials are stored (NOT the actual credentials)
-
-**Example (CORRECT):**
-- ✅ "Anthropic API key added to `.env` as `ANTHROPIC_API_KEY`"
-- ❌ "Anthropic API key: sk-ant-1234567890..." (WRONG - never do this)
-
----
-
-## 🧪 Testing Instructions
-
-**To verify current state:**
-```bash
-[Commands to verify everything works]
+**Session Status:** [✅ Complete / 🟡 Partial / ❌ Blocked]
+**Next Session Goal:** [One sentence describing next priority]
 ```
 
-**Expected output:**
-[What you should see]
+**Note:** For minor sessions, use abbreviated template with just Accomplishments + Next Steps.
+
+### Step 4: Update START-HERE.md or NEXT-STEPS.md (if needed)
+
+Only update if:
+- Major milestone reached (e.g., "Database complete")
+- Critical path changed (e.g., "Now unblocked, focus on X")
+- New blocker requires different approach
+
+Otherwise, skip this step.
+
+### Step 5: Update .claude/CLAUDE.md Status
+
+Update the status line at top:
+```markdown
+**Status:** 🚧 In Development (Phase X - Y% Complete)
+**Last updated:** YYYY-MM-DD
+```
+
+Update the "Critical Context Files" section if new strategic documents were created.
+
+### Step 6: Git Status Check
+
+**CRITICAL - Security Check:**
+
+1. Run `git status`
+2. **Check for secrets:** Scan for .env, credentials, API keys
+3. **If secrets found:** STOP and warn user loudly:
+   ```
+   ⚠️ WARNING: .env or credentials detected in git status!
+   DO NOT COMMIT THESE FILES.
+   Run: git checkout .env
+   Verify .gitignore is working.
+   ```
+4. **If clean:** Report status
+   ```
+   Git status: X modified files, all safe to commit
+   Files changed: [list]
+   ```
+
+**DO NOT commit anything. Just report status.**
+
+### Step 7: Provide Summary to User
+
+```markdown
+📝 **Documentation Updated**
+
+**Session Summary:**
+- Duration: X hours
+- Accomplishments: [1-sentence summary]
+- Status: [✅ / 🟡 / ❌]
+
+**Files Updated:**
+- building/PROGRESS.md (updated progress to X%)
+- building/session-logs/YYYY-MM-DD-description.md (created)
+- .claude/CLAUDE.md (updated status)
+
+**Next Session Priority:** [One sentence]
+
+**Git Status:** X files modified (safe to commit / ⚠️ CONTAINS SECRETS)
 
 ---
 
-## 📚 Context for Next Session
-
-[Any additional context that would be helpful for picking this up later]
-
-**Quick Start Commands:**
-```bash
-# Navigate to project
-cd [project-path]
-
-# Activate environment (if needed)
-source .venv/bin/activate
-
-# Run next step
-[command]
+All documentation updated! Session context preserved for next time.
 ```
 
 ---
 
-## 🔗 References
+## Security Rules (CRITICAL)
 
-- Related documentation: [Links to relevant docs]
-- External resources: [Any helpful links]
-- Previous sessions: [Links to related session logs]
+**NEVER document:**
+- Actual API keys
+- Actual passwords
+- Actual credentials
+- .env file contents
+- Supabase service role keys
+- Any secret values
+
+**ONLY document:**
+- That credentials were obtained
+- Where to get credentials (links to dashboards)
+- Template formats (e.g., "sk-ant-xxxxx")
+- Whether setup was successful
+
+**If you see real secrets in files:**
+1. STOP immediately
+2. Warn user
+3. Do NOT include in documentation
+4. Remind about .gitignore
 
 ---
 
-**Session End:** [Timestamp]
-**Next Session Goal:** [What to focus on next time]
+## Example Usage
+
+```
+User: /document
+
+Claude: [Reads current session context...]
+
+📝 **Documenting session...**
+
+[Updates PROGRESS.md...]
+[Creates session log...]
+[Updates .claude/CLAUDE.md...]
+[Checks git status...]
+
+📝 **Documentation Updated**
+
+**Session Summary:**
+- Duration: 2 hours
+- Accomplishments: Implemented Food Finder MCP server, all 4 tools working
+- Status: ✅ Complete
+
+**Files Updated:**
+- building/PROGRESS.md (Phase 2 now 25% complete)
+- building/session-logs/2025-10-15-food-finder-implementation.md
+- .claude/CLAUDE.md (status updated)
+
+**Next Session Priority:** Implement Activity Planner MCP server (4 hours)
+
+**Git Status:** 8 files modified (safe to commit)
+
+All documentation updated! Session context preserved for next time.
 ```
 
-### 3. UPDATE PROGRESS.MD
-
-Update `building/PROGRESS.md` with:
-- Current completion percentages
-- What phase we're in
-- What's done, in progress, and pending
-- Updated timeline estimates
-- Any changes to scope or approach
-
-### 4. UPDATE NEXT-STEPS.MD
-
-Update `NEXT-STEPS.md` to reflect:
-- Current status (what's just been completed)
-- **Immediate next action** with exact commands (most detailed)
-- Next 3-5 actions in priority order
-- Any blocked items
-- Clear success criteria for each step
-
-**Focus:** Detailed step-by-step instructions for implementing next features.
-
-### 5. UPDATE START-HERE.MD
-
-Update `START-HERE.md` sections:
-- Current Status (percentages, completion markers)
-- **Quick orientation** for what to do next (high-level)
-- Success Milestones (check off completed items)
-- Any changes to time estimates
-
-**Focus:** Quick resume guide, not detailed implementation steps (those go in NEXT-STEPS.md).
-
-### 6. UPDATE OR CREATE ISSUES.MD
-
-Update `building/ISSUES.md` with:
-- New issues discovered
-- Issues resolved (move to "Resolved" section)
-- Current blockers
-- Workarounds in place
-
-### 7. UPDATE DECISIONS.MD (if needed)
-
-Add to `building/DECISIONS.md` any significant:
-- Architectural decisions
-- Technology choices
-- Approach changes
-- Trade-offs made
-
-### 8. UPDATE README.MD (if major changes)
-
-**ONLY update the main README.md if there are significant changes:**
-- Installation instructions changed
-- Major features were added or completed
-- Setup process changed
-- Prerequisites changed
-- Project status fundamentally shifted
-
-**Do NOT update README for:**
-- Minor bug fixes
-- Internal refactoring
-- Documentation updates
-- Work in progress
-
-**README updates should be rare** (maybe once per milestone).
-
-## 📝 Documentation Standards
-
-**Writing Style:**
-- Use clear, active voice
-- Include exact commands (copy-pasteable)
-- Reference specific file paths with line numbers when relevant
-- Explain WHY, not just WHAT
-- Include timestamps and dates
-- Use emojis for visual scanning (✅ 🐛 💡 🎯 ⏸️ 🟡)
-- Format code blocks with language tags
-- Use tables for comparisons
-- Include estimated time for each action
-
-**Context Requirements:**
-- Someone should be able to resume without asking questions
-- Commands should be exact and tested
-- File paths should be absolute or clearly relative
-- Prerequisites should be explicit
-- Expected outcomes should be clear
-
-**Success Criteria:**
-- Could you hand this to another developer and they could continue?
-- Could future-you pick this up in 6 months without confusion?
-- Are all decisions and trade-offs documented?
-- Are all credentials and configuration documented (but not exposed)?
-- Is the immediate next step crystal clear?
-
-## 🎬 Execution Instructions
-
-1. **Read** the entire conversation from start to finish
-2. **Extract** all relevant information systematically
-3. **Create** the session log with comprehensive details
-4. **Update** all relevant documentation files
-5. **Verify** that next steps are crystal clear with exact commands
-6. **Review** that someone could pick this up immediately
-7. **Confirm** all decisions and learnings are captured
-
-## ⚡ Critical Requirements
-
-### DO:
-- ✅ Include exact commands to run (tested and copy-pasteable)
-- ✅ Include file paths and line numbers where relevant
-- ✅ Explain why decisions were made
-- ✅ Document what didn't work and why
-- ✅ Make the next action immediately obvious
-- ✅ Include time estimates for next actions
-- ✅ Reference specific errors and solutions
-- ✅ Match documentation length to session significance
-- ✅ Skip irrelevant template sections
-- ✅ Verify files exist before updating them
-
-### DO NOT:
-- ❌ Be vague or assume context
-- ❌ Skip documenting issues or failures
-- ❌ Forget to update progress indicators
-- ❌ Leave next steps ambiguous
-- ❌ Include actual credentials, API keys, or secrets
-- ❌ Create unnecessary new top-level documentation files
-- ❌ Write 10-page logs for minor sessions
-- ❌ Update README.md for every small change
-- ❌ Duplicate information across multiple files unnecessarily
-
 ---
 
-## 🚀 Execute Now
+## Notes
 
-Take your time. Be thorough. Review the entire session. Create documentation that ensures perfect continuity. Make it impossible to be confused about what to do next.
-
-Begin the documentation process now.
+- Run this at the END of every session before stopping work
+- Ensures continuity between sessions
+- Future Claude (or you in 3 months) will thank you
+- The better the documentation, the faster you can resume
+- Takes 2-5 minutes but saves 15+ minutes next session

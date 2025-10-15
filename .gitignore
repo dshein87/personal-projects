@@ -162,6 +162,9 @@ secrets/
 # Confidential interview materials
 projects/Headway Interview/
 
+# Personal family information
+projects/Axel Kindergarten Admissions/
+
 # Environment variables and local configuration
 .env
 .env.local

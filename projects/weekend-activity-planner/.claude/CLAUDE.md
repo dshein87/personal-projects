@@ -1,10 +1,62 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+---
+
 # Weekend Activity Planner - Project Context
 
 **Project:** Weekend Activity Planner
 **Owner:** David Shein
 **Location:** /Users/dshein/Personal Projects/projects/weekend-activity-planner
-**Status:** 🚧 In Development (Phase 1 - Foundation)
-**Last updated:** 2025-10-09
+**Status:** 🚧 In Development (Phase 1 ~80% Complete)
+**Last updated:** 2025-10-14
+
+---
+
+## 🎯 START HERE - Load Latest Context
+
+**IMPORTANT:** Before starting any work, Claude Code should ALWAYS load these files to get the latest project state:
+
+### Critical Context Files (Load in Order)
+
+**Fast context loading (< 1000 tokens):**
+1. **`.claude/project-status.json`** - Machine-readable current state (parse critical_blockers, next_tasks, system_health)
+2. **`building/STRATEGIC-SUMMARY.md`** - 2-minute executive summary
+
+**Deep context (reference as needed):**
+3. **`building/STRATEGIC-PLAN.md`** - Full 20-page strategic plan (don't read upfront, reference when needed)
+4. **`building/PROGRESS.md`** - Detailed progress tracking
+5. **`building/session-logs/[most-recent].md`** - Last work session (check "Next Steps" section only)
+
+### Quick Context Check
+Run these commands to verify current state:
+```bash
+# Check database health
+claude mcp list  # Should show: supabase ✓ Connected
+
+# Check latest progress
+cat building/PROGRESS.md | head -20
+
+# Check for blockers
+grep -A5 "Current Blockers" building/PROGRESS.md
+```
+
+### Session Start Checklist
+Before accepting any task, verify:
+- [ ] Parse `.claude/project-status.json` (critical_blockers, next_tasks)
+- [ ] Read `building/STRATEGIC-SUMMARY.md` (< 2 min)
+- [ ] Check latest session log "Next Steps" section
+- [ ] Verify Supabase MCP connection is working
+- [ ] Reference `building/STRATEGIC-PLAN.md` only if needed for specific details
+
+**Why this matters:** Layered context loading saves tokens. JSON manifest + summary = < 1000 tokens vs 7,000+ tokens for full strategic plan.
+
+**When to read full strategic plan:**
+- Implementing complex features that need detailed guidance
+- Making architectural decisions
+- Understanding strategic rationale
+- **NOT** for routine session startup
 
 ---
 
@@ -83,6 +135,240 @@ Multi-agent AI system with WhatsApp bot interface, Spotify integration, and lear
 
 ---
 
+## Development Commands
+
+### Building MCP Servers
+
+```bash
+# Build all MCP servers at once
+for dir in mcp-servers/*; do
+  echo "Building $(basename $dir)..."
+  cd "$dir" && npm install && npm run build
+  cd ../..
+done
+
+# Build individual server
+cd mcp-servers/orchestrator && npm install && npm run build
+
+# Run in development mode (watch for changes)
+cd mcp-servers/orchestrator && npm run dev
+```
+
+### Database Setup
+
+```bash
+# 1. Create Supabase project at https://supabase.com
+# 2. Get credentials from Settings > API
+
+# 3. Apply schema
+# In Supabase SQL Editor, paste contents of database/schema.sql
+
+# 4. Load seed data
+# Run database/seed-activities.sql (~75 activities)
+# Run database/seed-restaurants.sql (~25 restaurants)
+
+# 5. Verify tables exist
+# SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
+```
+
+### Rating UI
+
+```bash
+# Setup (one-time)
+cd rating-ui
+python3 -m venv .venv
+source .venv/bin/activate  # On macOS
+pip install -r requirements.txt
+
+# Run Streamlit app
+streamlit run streamlit_app.py
+# Opens at http://localhost:8501
+```
+
+### Environment Setup
+
+```bash
+# 1. Copy template
+cp .env.example .env
+
+# 2. Fill in credentials (see building/API-REFERENCE.md for links)
+# Required for Phase 1:
+# - ANTHROPIC_API_KEY
+# - SUPABASE_URL
+# - SUPABASE_ANON_KEY
+# - SUPABASE_SERVICE_ROLE_KEY
+
+# 3. Verify environment
+python3 setup_database.py --check-env
+```
+
+### Testing Commands
+
+```bash
+# Test MCP server builds
+cd mcp-servers/orchestrator && npm run build
+
+# Test Supabase connection from Python
+cd rating-ui && python3 -c "from supabase import create_client; import os; from dotenv import load_dotenv; load_dotenv('../.env'); print('Connected!' if create_client(os.getenv('SUPABASE_URL'), os.getenv('SUPABASE_ANON_KEY')) else 'Failed')"
+
+# Query activities count
+# In Supabase SQL Editor: SELECT COUNT(*) FROM activities;
+
+# Check TypeScript compilation
+cd mcp-servers/orchestrator && npx tsc --noEmit
+```
+
+---
+
+## MCP Server Architecture
+
+### Current Implementation Status (Phase 1)
+
+**⚠️ All MCP servers are SKELETON implementations with TODOs**
+
+The servers have:
+- ✅ Basic structure and tool definitions
+- ✅ Supabase client initialization
+- ✅ TypeScript types and error handling
+- ❌ Actual implementation logic (marked with TODO comments)
+
+### Server Communication Pattern
+
+```typescript
+// Orchestrator coordinates all subagents via direct tool calling
+// Pattern used across all servers:
+
+import { createClient } from '@supabase/supabase-js';
+import * as dotenv from 'dotenv';
+
+// Load .env from project root (2 levels up from mcp-servers/*/src/)
+dotenv.config({ path: '../../.env' });
+
+// Initialize Supabase with SERVICE_ROLE_KEY for server-side operations
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+```
+
+### Tool Calling Flow
+
+```
+User (WhatsApp) → n8n → Orchestrator MCP Server
+                           ↓
+         ┌─────────────────┴─────────────────┐
+         ↓                 ↓                  ↓
+   Activity Planner   Music Scout      Food Finder
+         ↓                 ↓                  ↓
+         └─────────────────┬─────────────────┘
+                           ↓
+                   Schedule Sync
+                           ↓
+                   Format Response
+                           ↓
+                   n8n → WhatsApp
+```
+
+### Server Responsibilities
+
+**Orchestrator** (`mcp-servers/orchestrator/`)
+- Tools: `plan_weekend`, `get_day_plan`, `answer_question`
+- Coordinates all other servers
+- Handles WhatsApp conversation context
+
+**Activity Planner** (`mcp-servers/activity-planner/`)
+- Tools: `query_activities`, `suggest_activity_chain`, `check_opening_hours`
+- Filters by age, weather, indoor/outdoor
+- Applies drive time decay logic
+
+**Music Scout** (`mcp-servers/music-scout/`)
+- Tools: `sync_spotify_preferences`, `find_concerts`, `get_concert_details`
+- Pulls from Spotify API
+- Matches concerts to listening history
+
+**Food Finder** (`mcp-servers/food-finder/`)
+- Tools: `find_restaurants`, `match_restaurant_to_activity`, `check_dietary_safety`
+- CRITICAL: Always filter by dietary restrictions (celiac, sesame, cashew, flax)
+
+**Schedule Sync** (`mcp-servers/schedule-sync/`)
+- Tools: `check_calendar_conflicts`, `get_weather_forecast`, `calculate_drive_time`, `suggest_timing`
+- Google Calendar integration
+- Weather API integration
+
+---
+
+## Database Schema & Query Patterns
+
+### Core Tables
+
+**activities** - Parks, museums, playgrounds
+```sql
+-- Age-appropriate filtering (3-5 year olds)
+SELECT * FROM activities
+WHERE age_min <= 3 AND age_max >= 5
+  AND drive_time_minutes <= 30
+  AND indoor_outdoor IN ('outdoor', 'both')
+ORDER BY avg_rating DESC NULLS LAST, times_visited DESC;
+```
+
+**restaurants** - Dietary-safe dining options
+```sql
+-- CRITICAL: Always check dietary restrictions
+SELECT * FROM restaurants
+WHERE celiac_safe = true
+  AND sesame_free_options = true
+  AND cashew_free_options = true
+  AND flax_free_options = true
+  AND cuisine = 'mexican'
+  AND drive_time_minutes <= 30
+ORDER BY avg_rating DESC NULLS LAST;
+```
+
+**visits** - Rating history with age-specific feedback
+```sql
+-- Get visit history with separate child ratings
+SELECT
+  a.name,
+  v.visited_at,
+  v.rating_3yo,  -- Separate rating for younger child
+  v.rating_5yo,  -- Separate rating for older child
+  v.rating_overall,
+  v.notes
+FROM visits v
+JOIN activities a ON v.activity_id = a.id
+WHERE v.rating_3yo >= 4 OR v.rating_5yo >= 4
+ORDER BY v.visited_at DESC;
+```
+
+**concerts** - Music discovery
+```sql
+-- Find relevant concerts
+SELECT
+  c.*,
+  v.name as venue_name,
+  v.drive_time_minutes
+FROM concerts c
+JOIN venues v ON c.venue_id = v.id
+WHERE c.event_date >= CURRENT_DATE
+  AND c.event_date <= CURRENT_DATE + INTERVAL '6 months'
+  AND v.drive_time_minutes <= 90
+ORDER BY c.relevance_score DESC, c.event_date ASC;
+```
+
+### Important Indexes
+
+All tables indexed on:
+- Drive time (`drive_time_minutes`)
+- City location
+- Rating fields
+- Timestamps (`created_at`, `updated_at`)
+
+### Triggers
+
+All tables have auto-updating `updated_at` timestamp via trigger.
+
+---
+
 ## Tech Stack Details
 
 ### Database (Supabase)
@@ -132,19 +418,22 @@ Multi-agent AI system with WhatsApp bot interface, Spotify integration, and lear
 
 ## Current Phase: Phase 1 - Foundation
 
-### What We're Building Now
+### Implementation Status
 
 - [x] Project structure and documentation
 - [x] Building/ session tracking system
 - [x] Security files (.gitignore, .env.example)
 - [x] Project context (.claude/CLAUDE.md)
-- [ ] Supabase database schema
-- [ ] Activity seed data (~75 Oakland/East Bay activities)
-- [ ] Restaurant seed data (~25 celiac-safe, Mexican-focused)
-- [ ] Streamlit rating UI
+- [x] Supabase database schema (database/schema.sql)
+- [x] Activity seed data (~75 Oakland/East Bay activities)
+- [x] Restaurant seed data (~25 celiac-safe, Mexican-focused)
+- [x] MCP server skeletons (all 5 servers with TODO implementations)
+- [ ] Streamlit rating UI implementation
 - [ ] Bootstrap rating session
+- [ ] Complete MCP server implementations
+- [ ] n8n workflow setup
 
-**Next up:** Database schema design
+**Next up:** Implement Streamlit rating UI, then complete MCP server logic
 
 ---
 
@@ -236,24 +525,34 @@ Multi-agent AI system with WhatsApp bot interface, Spotify integration, and lear
 
 ---
 
-## Testing This Project
+## Quick Health Check
 
-### Quick Health Check
+Run these commands to verify the system is working:
+
 ```bash
-# From project root
-cd /Users/dshein/Personal Projects/projects/weekend-activity-planner
+# 1. Verify environment variables are set
+grep -E "SUPABASE_URL|ANTHROPIC_API_KEY" .env | wc -l
+# Should output: 2 (or more if other keys set)
 
-# Check all MCP servers build
+# 2. Build all MCP servers
 for dir in mcp-servers/*; do
-  cd $dir && npm run build || echo "Failed: $dir"
+  echo "Testing $(basename $dir)..."
+  cd "$dir" && npm run build 2>&1 | grep -q "error" && echo "❌ Failed" || echo "✅ Built"
   cd ../..
 done
 
-# Check Supabase connection
-# (run from rating-ui or MCP server)
+# 3. Check database has data
+# In Supabase SQL Editor:
+# SELECT
+#   (SELECT COUNT(*) FROM activities) as activities,
+#   (SELECT COUNT(*) FROM restaurants) as restaurants,
+#   (SELECT COUNT(*) FROM venues) as venues;
+# Should show: ~75 activities, ~25 restaurants, ~5 venues
 
-# Test Streamlit UI
-cd rating-ui && streamlit run streamlit_app.py
+# 4. Test Streamlit UI launches
+cd rating-ui && streamlit run streamlit_app.py &
+# Open browser to http://localhost:8501
+# You should see activity rating interface
 ```
 
 See `building/TESTING.md` for comprehensive testing guide.
@@ -342,6 +641,222 @@ See `building/TESTING.md` for comprehensive testing guide.
 
 ---
 
+## Project Structure
+
+```
+weekend-activity-planner/
+├── .claude/
+│   └── CLAUDE.md              # This file - project context for Claude Code
+├── building/                   # Session documentation & tracking
+│   ├── README.md              # How to resume development
+│   ├── PLAN.md                # 4-week implementation plan
+│   ├── PROGRESS.md            # Current status tracker
+│   ├── DECISIONS.md           # Architecture decision log
+│   ├── ISSUES.md              # Known problems & solutions
+│   ├── TESTING.md             # Test guide
+│   ├── API-REFERENCE.md       # API documentation links
+│   ├── ENVIRONMENT-CHECKLIST.md  # Setup verification
+│   ├── IMPLEMENTATION-GUIDE.md   # Detailed build guide
+│   ├── LESSONS-LEARNED.md     # Development insights
+│   ├── BACKLOG.md             # v2/v3 features
+│   └── session-logs/          # Timestamped session notes
+├── database/
+│   ├── schema.sql             # Supabase database schema (10 tables, 5 views)
+│   ├── seed-activities.sql    # ~75 Oakland/East Bay activities
+│   └── seed-restaurants.sql   # ~25 celiac-safe restaurants
+├── mcp-servers/               # 5 TypeScript MCP servers
+│   ├── orchestrator/          # Main coordinator (plan_weekend, get_day_plan)
+│   ├── activity-planner/      # Kid activities (query_activities, suggest_chain)
+│   ├── music-scout/           # Concert discovery (sync_spotify, find_concerts)
+│   ├── food-finder/           # Restaurants (find_restaurants, check_dietary)
+│   └── schedule-sync/         # Calendar/weather (check_conflicts, get_forecast)
+├── n8n-workflows/             # 6 automation workflows (currently empty)
+├── rating-ui/                 # Streamlit bootstrap rating interface
+│   ├── streamlit_app.py       # Main app (TODO: implement)
+│   ├── requirements.txt       # Python dependencies
+│   └── README.md              # Rating UI guide
+├── docs/
+│   └── SETUP.md               # Full setup guide
+├── .env.example               # Environment template (copy to .env)
+├── .gitignore                 # Security patterns
+├── README.md                  # Project overview
+└── START-HERE.md              # Quick orientation guide
+```
+
+### Key File Locations
+
+**Before starting work:**
+- Read: `building/README.md` → `building/PROGRESS.md` → `building/session-logs/[latest].md`
+
+**When implementing:**
+- Reference: `building/PLAN.md` for overall structure
+- Check: `building/DECISIONS.md` for architectural rationale
+- Document issues: `building/ISSUES.md`
+
+**For testing:**
+- Guide: `building/TESTING.md`
+- Environment: `building/ENVIRONMENT-CHECKLIST.md`
+
+**For API integration:**
+- Links: `building/API-REFERENCE.md`
+
+---
+
+## Supabase MCP Server
+
+### Configuration (Read-Only Mode)
+
+The project uses the official Supabase MCP server for database access during development.
+
+**Current Setup:**
+- **Package:** `@supabase/mcp-server-supabase@latest`
+- **Project Reference:** `ohdmrfyyavlkoflbbjsd`
+- **Mode:** Read-only (`--read-only` flag)
+- **Features:** `database` and `docs` only
+- **Config file:** `.mcp.json` (project root)
+
+### Authentication Setup
+
+The Supabase MCP requires authentication. Choose one method:
+
+#### Method A: OAuth Login (Recommended)
+1. Try to use any Supabase MCP tool in Claude Code
+2. Browser window will open automatically
+3. Login to your Supabase account
+4. Grant access to the MCP client
+5. Select the correct organization
+
+#### Method B: Personal Access Token
+If OAuth doesn't work, use a personal access token:
+
+1. Visit: https://supabase.com/dashboard/account/tokens
+2. Click "Generate new token"
+3. Give it a name (e.g., "Weekend Planner MCP")
+4. Copy the token (starts with `sbp_`)
+5. Add to `.env`:
+```bash
+SUPABASE_ACCESS_TOKEN=sbp_your_token_here
+```
+6. Restart Claude Code
+
+### Available MCP Tools
+
+Once authenticated, these tools are available:
+
+**Database Operations:**
+- `list_tables` - List all database tables
+- `describe_table` - Show table schema and columns
+- `query_database` - Execute read-only SQL queries
+- `get_table_data` - Fetch rows from a table
+- `search_tables` - Full-text search across tables
+
+**Documentation:**
+- `search_docs` - Search Supabase documentation
+- `get_doc` - Retrieve specific documentation page
+
+### Usage Examples
+
+```typescript
+// List all tables
+mcp__supabase__list_tables()
+
+// Describe activities table
+mcp__supabase__describe_table({ table_name: "activities" })
+
+// Query dietary-safe restaurants
+mcp__supabase__query_database({
+  query: `
+    SELECT name, cuisine, celiac_notes
+    FROM restaurants
+    WHERE celiac_safe = true
+    ORDER BY avg_rating DESC NULLS LAST
+    LIMIT 10
+  `
+})
+
+// Count activities
+mcp__supabase__query_database({
+  query: "SELECT COUNT(*) as total FROM activities"
+})
+
+// Get visit history with ratings
+mcp__supabase__query_database({
+  query: `
+    SELECT a.name, v.rating_3yo, v.rating_5yo, v.notes
+    FROM visits v
+    JOIN activities a ON v.activity_id = a.id
+    ORDER BY v.visited_at DESC
+    LIMIT 20
+  `
+})
+```
+
+### Upgrading to Write Mode
+
+**When to upgrade:** After Phase 1, when implementing n8n workflows that need to insert/update data.
+
+**Steps to enable write access:**
+
+1. Edit `.mcp.json`:
+```json
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--project-ref=ohdmrfyyavlkoflbbjsd",
+        // REMOVE the --read-only flag below:
+        // "--read-only",
+        "--features=database,docs,functions"  // Add functions if needed
+      ]
+    }
+  }
+}
+```
+
+2. Restart Claude Code for changes to take effect
+
+3. **IMPORTANT:** Be very careful with write operations:
+   - Always review SQL before execution
+   - Test with small datasets first
+   - Have backups of your data
+   - Use transactions when possible
+
+### Security Best Practices
+
+✅ **Current (Read-Only Mode):**
+- Cannot accidentally modify or delete data
+- Safe for exploration and testing
+- Good for Phase 1 development
+
+⚠️ **When in Write Mode:**
+- Manually review every INSERT/UPDATE/DELETE
+- Never expose to end users
+- Only use in development environment
+- Consider using database branching for testing
+
+### Troubleshooting
+
+**MCP Server Failed to Connect:**
+- Check internet connection
+- Verify project-ref is correct: `ohdmrfyyavlkoflbbjsd`
+- Try Method B (Personal Access Token)
+- Restart Claude Code
+
+**Tools Not Available:**
+- Run `claude mcp list` to verify server status
+- Check `.mcp.json` syntax is valid
+- Ensure `enableAllProjectMcpServers: true` in `.claude/settings.local.json`
+
+**Authentication Errors:**
+- Regenerate personal access token
+- Ensure token is in `.env` as `SUPABASE_ACCESS_TOKEN`
+- Check token hasn't expired (visit dashboard)
+
+---
+
 ## Links
 
 - **Project root:** `/Users/dshein/Personal Projects/projects/weekend-activity-planner`
@@ -350,6 +865,7 @@ See `building/TESTING.md` for comprehensive testing guide.
 - **Master plan:** `building/PLAN.md`
 - **API reference:** `building/API-REFERENCE.md`
 - **Testing guide:** `building/TESTING.md`
+- **Supabase MCP config:** `.mcp.json`
 
 ---
 
