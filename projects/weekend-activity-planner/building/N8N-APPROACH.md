@@ -83,6 +83,11 @@ curl -X POST "https://dshein.app.n8n.cloud/api/v1/workflows" \
 
 **Verified:** 2025-10-15 - Successfully created workflow with `scheduleTrigger` node
 
+**Project Assignment:**
+- Workflows created via API default to account level
+- **Solution:** Create via API, then move to project in GUI (drag & drop)
+- **Verified:** Workflow `wRRp1fTwNzOHr9rY` successfully in project `XoTYV1MmnDfn9HAv`
+
 ---
 
 ### 2. Available Nodes

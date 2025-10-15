@@ -1,0 +1,2637 @@
+{
+  "id": "5FMGLNbKrDBKJaQe",
+  "name": "Room Parent Agent (WIP)",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bb16e4e2-ef6c-431b-9887-47260a46a190",
+              "name": "text",
+              "value": "Subject: TRIS Newsletter - Sep 15 Parent Night Oct 2, 6:00–7:30pm at Library. Snack next week (Sep.29–Oct. 3) Devraj Gambino. Allergies: add Egg; remove Milk.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -160,
+        440
+      ],
+      "id": "4a517620-12bb-48ed-ae71-fdc6a88d92c0",
+      "name": "Sample Text"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$json.prompt_text}}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        64,
+        -144
+      ],
+      "id": "a8ec8102-9b5e-4b1b-832a-02f4ce12eaa7",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        136,
+        80
+      ],
+      "id": "4e805de0-69e9-465f-95e9-cd7bbbceb03a",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "1KSrJ3dYH94nVSPY",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst findText = (obj) => {\n  if (typeof obj === 'string') return obj;\n\n  const picks = [];\n  const push = (v) => {\n    if (typeof v === 'string' && v.trim()) picks.push(v);\n  };\n\n  push(obj.text);\n  push(obj.output_text);\n  push(obj.data);\n  push(obj.completion);\n  push(obj.output);\n  if (obj.message?.text) push(obj.message.text);\n  if (Array.isArray(obj.messages) && obj.messages[0]?.text) push(obj.messages[0].text);\n\n  try {\n    const parts = obj.candidates?.[0]?.content?.parts || [];\n    const joined = parts.map(p => p.text).filter(Boolean).join('\\n');\n    push(joined);\n  } catch (e) {}\n\n  if (obj.data && typeof obj.data === 'object') {\n    push(obj.data.text);\n    push(obj.data.output_text);\n    push(obj.data.completion);\n  }\n\n  return picks[0] ?? JSON.stringify(obj);\n};\n\nconst extractJsonString = (s) => {\n  s = String(s ?? '').trim();\n  s = s.replace(/^```(?:json)?\\s*/i, '').replace(/```$/i, '').trim();\n  if (!s.startsWith('{')) {\n    const i = s.indexOf('{');\n    const j = s.lastIndexOf('}');\n    if (i !== -1 && j !== -1 && j > i) s = s.slice(i, j + 1);\n  }\n  return s;\n};\n\nconst rawText = findText($json);\nconst jsonStr = extractJsonString(rawText);\n\nlet parsed;\ntry {\n  parsed = JSON.parse(jsonStr);\n} catch (e) {\n  throw new Error(\n    'Could not parse JSON from model output.\\n' +\n    'First 400 chars were:\\n' + (rawText || '').slice(0, 400)\n  );\n}\n\n['events', 'snack_changes', 'allergy_changes', 'notices'].forEach(k => {\n  if (!(k in parsed)) {\n    parsed[k] = [];\n  }\n  if (!Array.isArray(parsed[k])) {\n    throw new Error(`Field ${k} must be an array. Got: ${typeof parsed[k]}`);\n  }\n});\n\nconst meta = $json.__ingestion || {};\nconst baseSourceType = meta.source_type || meta.ingestion_origin || null;\nconst baseSourceUrl = meta.source_url || null;\nconst sourceId = meta.message_id || meta.file_id || null;\nconst sourceSubject = meta.subject || meta.source_subject || meta.subject || null;\nconst fileName = meta.file_name || meta.source_file_name || null;\nconst ingestedAt = meta.ingested_at || null;\nconst attachments = Array.isArray(meta.attachments) ? meta.attachments : [];\nconst ocrStatus = meta.ocr_status || null;\nconst pdfError = meta.pdf_parse_error || null;\n\nconst computeItemId = (scope, payload) => {\n  const hashInput = {\n    scope,\n    source_type: baseSourceType,\n    source_url: baseSourceUrl,\n    source_id: sourceId,\n    payload,\n  };\n  return crypto.createHash('sha1').update(JSON.stringify(hashInput)).digest('hex');\n};\n\nconst annotate = (list, scope) => list.map(item => {\n  const enriched = { ...item };\n  enriched.source_type = baseSourceType;\n  enriched.source_url = baseSourceUrl;\n  if (sourceId) enriched.source_id = sourceId;\n  if (sourceSubject) enriched.source_subject = sourceSubject;\n  if (fileName) enriched.source_file_name = fileName;\n  if (ingestedAt) enriched.ingested_at = ingestedAt;\n  if (attachments.length) enriched.source_attachments = attachments;\n  if (ocrStatus) enriched.source_ocr_status = ocrStatus;\n  if (pdfError) enriched.source_pdf_error = pdfError;\n  enriched.item_id = computeItemId(scope, item);\n  return enriched;\n});\n\nparsed.events = annotate(parsed.events, 'event');\nparsed.snack_changes = annotate(parsed.snack_changes, 'snack');\nparsed.allergy_changes = annotate(parsed.allergy_changes, 'allergy');\nparsed.notices = annotate(parsed.notices, 'notice');\n\nparsed._source = {\n  source_type: baseSourceType,\n  source_url: baseSourceUrl,\n  source_id: sourceId,\n  subject: sourceSubject,\n  file_name: fileName,\n  ingested_at: ingestedAt,\n};\nif (attachments.length) parsed._source.attachments = attachments;\nif (meta.gmail_metadata) parsed._source.gmail_metadata = meta.gmail_metadata;\nif (ocrStatus) parsed._source.ocr_status = ocrStatus;\nif (pdfError) parsed._source.pdf_parse_error = pdfError;\nif (meta.prompt_template) parsed._source.prompt_template = meta.prompt_template;\n\nreturn [{ json: parsed }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        -144
+      ],
+      "id": "33576326-d828-48c4-8afc-b6743aae0be4",
+      "name": "Validate JSON"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_SHEET_ID_PLACEHOLDER",
+          "mode": "list",
+          "cachedResultName": "TRIS Sequioa 2025-26 Snack Week Schedule",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1757054650,
+          "mode": "list",
+          "cachedResultName": "Allergies",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit#gid=1757054650"
+        },
+        "options": {},
+        "operation": "getRow"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        416,
+        104
+      ],
+      "id": "4d5de907-eece-484a-96b6-41d6e86a3b9c",
+      "name": "Allergy Rows",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "opmsUZ0EOPU1PD9R",
+          "name": "gsheets-rpu"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_SHEET_ID_PLACEHOLDER",
+          "mode": "list",
+          "cachedResultName": "TRIS Sequioa 2025-26 Snack Week Schedule",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Snack Week Schedule",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit#gid=0"
+        },
+        "options": {},
+        "operation": "getRow"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        416,
+        296
+      ],
+      "id": "54f76794-bc2c-46df-8f6b-df2ebe01dca5",
+      "name": "Snack Week Schedule",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "opmsUZ0EOPU1PD9R",
+          "name": "gsheets-rpu"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "7517dd2443c38f31e858f6a544c3e2d9f945811fe970225fb3fe1fe0c180e4e9@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "TRIS 2025-26"
+        },
+        "returnAll": true,
+        "timeMin": "={{ $json.poll_start_iso || $json.poll_start || $json.lookback_start_iso }}",
+        "timeMax": "={{ new Date(new Date($json.poll_end_iso || $json.poll_end || $json.poll_start_iso || new Date().toISOString()).getTime() + 60 * 24 * 60 * 60 * 1000).toISOString() }}",
+        "options": {
+          "recurringEventHandling": "expand",
+          "timeZone": {
+            "__rl": true,
+            "value": "America/Los_Angeles",
+            "mode": "list",
+            "cachedResultName": "America/Los_Angeles"
+          },
+          "singleEvents": true
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        416,
+        584
+      ],
+      "id": "a973010a-3015-477f-a2a7-411ba7753be2",
+      "name": "Calendar Snapshot",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "y75XdoGS3DwHvZi1",
+          "name": "gcal-rpu"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "={{$json.drive_query}}",
+        "options": {
+          "fields": [
+            "id",
+            "name",
+            "mimeType",
+            "modifiedTime",
+            "createdTime",
+            "webViewLink",
+            "owners"
+          ],
+          "orderBy": "modifiedTime desc"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -160,
+        -336
+      ],
+      "id": "cc9d0999-e9c3-4420-bde8-bed702fb8c03",
+      "name": "Drive PDF List",
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "3Mlbk1EdQh6pn35w",
+          "name": "gdrive-rpu"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "returnAll": true,
+        "filters": {
+          "includeSpamTrash": false,
+          "q": "={{$json.gmail_query}}"
+        },
+        "options": {
+          "format": "full",
+          "includeAttachments": true,
+          "maxResults": 50
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -160,
+        -144
+      ],
+      "id": "807f9a53-bf21-442a-9340-5a699a271d3a",
+      "name": "Gmail Search",
+      "webhookId": "3c1b0a8e-b160-4409-8aef-97f9dfef5582",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "bmxgWt0gSJhngHjY",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const tzDefault = 'America/Los_Angeles';\n\nfunction slugify(input) {\n  return String(input ?? '')\n    .toLowerCase()\n    .normalize('NFKD')\n    .replace(/[^a-z0-9]+/g, ' ')\n    .trim()\n    .replace(/\\s+/g, '-');\n}\n\nfunction parseWeekRange(label) {\n  if (!label) return null;\n  const clean = String(label).replace(/\\s+/g, ' ').trim();\n  const rangeRe = /([A-Za-z]{3,})\\.?\\s*(\\d{1,2})(?:[–-]\\s*([A-Za-z]{3,})\\.?\\s*(\\d{1,2}))?/;\n  const match = clean.match(rangeRe);\n  if (!match) return null;\n  const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];\n  const startMonthIndex = months.indexOf(match[1].slice(0, 3).toLowerCase());\n  if (startMonthIndex === -1) return null;\n  const startDay = Number(match[2]);\n  let endMonthIndex = startMonthIndex;\n  let endDay = Number(match[4] || match[2]);\n  if (match[3]) {\n    const idx = months.indexOf(match[3].slice(0, 3).toLowerCase());\n    if (idx !== -1) endMonthIndex = idx;\n  }\n  const now = new Date();\n  const year = now.getFullYear();\n  const start = new Date(Date.UTC(year, startMonthIndex, startDay, 0, 0, 0));\n  const end = new Date(Date.UTC(year, endMonthIndex, endDay, 23, 59, 59));\n  if (Number.isNaN(start.valueOf()) || Number.isNaN(end.valueOf())) return null;\n  return { start_iso: start.toISOString(), end_iso: end.toISOString() };\n}\n\nfunction ensureIso(value) {\n  if (!value) return null;\n  if (value instanceof Date) return value.toISOString();\n  if (typeof value === 'number') return new Date(value).toISOString();\n  if (typeof value !== 'string') return null;\n  const trimmed = value.trim();\n  if (!trimmed) return null;\n  const direct = new Date(trimmed);\n  if (!Number.isNaN(direct.valueOf())) return direct.toISOString();\n  const dateOnly = trimmed.match(/\\d{4}-\\d{2}-\\d{2}/);\n  if (dateOnly) {\n    const parsed = new Date(dateOnly[0] + 'T00:00:00.000Z');\n    if (!Number.isNaN(parsed.valueOf())) return parsed.toISOString();\n  }\n  return null;\n}\n\nfunction calendarTimeToIso(entry, { isEnd = false } = {}) {\n  if (!entry) return null;\n  if (typeof entry === 'string') return ensureIso(entry);\n  if (entry.dateTime) return ensureIso(entry.dateTime);\n  if (entry.date) {\n    const suffix = isEnd ? 'T23:59:59.000Z' : 'T00:00:00.000Z';\n    return ensureIso(entry.date + suffix);\n  }\n  return null;\n}\n\nfunction makeCalendarKey(summary, startIso) {\n  const titlePart = slugify(summary);\n  const timePart = startIso ? startIso.slice(0, 16) : 'no-time';\n  return titlePart + '|' + timePart;\n}\n\nfunction normalizeCalendar(events) {\n  return events.map((event) => {\n    const startIso = calendarTimeToIso(event.start);\n    const endIso = calendarTimeToIso(event.end, { isEnd: true }) || startIso;\n    return {\n      event_id: event.id || event.eventId || event.iCalUID || null,\n      summary: String(event.summary || '').trim(),\n      description: String(event.description || '').trim() || undefined,\n      location: String(event.location || '').trim() || undefined,\n      start_iso: startIso,\n      end_iso: endIso,\n      all_day: Boolean(event.start && event.start.date && !event.start.dateTime),\n      html_link: event.htmlLink || undefined,\n      dedupe_key: makeCalendarKey(event.summary || '', startIso),\n      source_refs: event.htmlLink ? [{ url: event.htmlLink, type: 'calendar', item_id: event.id || null }] : undefined,\n      raw: event\n    };\n  });\n}\n\nfunction normalizeSnackRows(rows) {\n  return rows\n    .map((row, index) => {\n      const weekLabel = String(row.Week ?? row.week ?? '').trim();\n      if (!weekLabel) return null;\n      const range = parseWeekRange(weekLabel);\n      const weekKey = range ? range.start_iso.slice(0, 10) : slugify(weekLabel);\n      const child = String(row.Child ?? row.child ?? '').trim();\n      const rowIndex = row.rowIndex ?? row.$row ?? row.__sheetRow ?? (index + 2);\n      return {\n        week_label: weekLabel,\n        week_key: weekKey,\n        child,\n        range,\n        row_index: rowIndex,\n        raw: row\n      };\n    })\n    .filter(Boolean);\n}\n\nfunction normalizeAllergies(rows) {\n  return rows\n    .map((row) => {\n      const text = row.Allergy ?? row.allergy ?? row.text ?? row.note;\n      const trimmed = String(text || '').trim();\n      if (!trimmed) return null;\n      return { text: trimmed, raw: row };\n    })\n    .filter(Boolean);\n}\n\nfunction buildSourceRefs(record, topSource) {\n  const refs = [];\n  const addRef = (ref) => {\n    if (!ref || !ref.url) return;\n    const exists = refs.some((existing) => existing.url === ref.url && existing.type === ref.type);\n    if (!exists) refs.push(ref);\n  };\n\n  const directRefs = Array.isArray(record.source_refs) ? record.source_refs : [];\n  for (const ref of directRefs) {\n    if (!ref) continue;\n    addRef({\n      url: String(ref.url || ref.href || ''),\n      type: ref.type || ref.source_type || record.source_type || topSource?.source_type || null,\n      item_id: ref.item_id || record.item_id || null,\n      label: ref.label || ref.title || null\n    });\n  }\n\n  if (record.source_url) {\n    addRef({\n      url: String(record.source_url),\n      type: record.source_type || record.source || topSource?.source_type || null,\n      item_id: record.item_id || record.source_id || topSource?.source_id || null,\n      label: record.source_subject || topSource?.subject || null\n    });\n  }\n\n  if (topSource && topSource.source_url) {\n    addRef({\n      url: String(topSource.source_url),\n      type: topSource.source_type || null,\n      item_id: topSource.source_id || null,\n      label: topSource.subject || topSource.file_name || null\n    });\n  }\n\n  return refs.length ? refs : undefined;\n}\n\nfunction normalizeProposed(extractor) {\n  const events = Array.isArray(extractor.events) ? extractor.events : [];\n  const snackChanges = Array.isArray(extractor.snack_changes) ? extractor.snack_changes : [];\n  const allergyChanges = Array.isArray(extractor.allergy_changes) ? extractor.allergy_changes : [];\n  const notices = Array.isArray(extractor.notices) ? extractor.notices : [];\n  const topSource = extractor._source || null;\n\n  const normEvents = events.map((event, index) => {\n    const summary = String(event.title ?? event.summary ?? '').trim();\n    const startIso = ensureIso(event.start_iso ?? event.start);\n    const endIso = ensureIso(event.end_iso ?? event.end);\n    return {\n      index,\n      op: String(event.op || 'upsert').toLowerCase(),\n      summary,\n      start_iso: startIso,\n      end_iso: endIso || null,\n      location: String(event.location || '').trim() || undefined,\n      description: String(event.description ?? event.notes ?? '').trim() || undefined,\n      audience: event.audience || undefined,\n      dedupe_key: makeCalendarKey(summary, startIso),\n      item_id: event.item_id || event.source_item_id || null,\n      source_refs: buildSourceRefs(event, topSource),\n      raw: event\n    };\n  });\n\n  const normSnack = snackChanges.map((row, index) => {\n    const weekLabel = String(row.week_label ?? row.week_text ?? row.week ?? '').trim();\n    const range = parseWeekRange(weekLabel);\n    const weekKey = range ? range.start_iso.slice(0, 10) : slugify(weekLabel);\n    return {\n      index,\n      week_label: weekLabel,\n      week_key: weekKey,\n      child: String(row.child ?? row.assignee ?? '').trim(),\n      note: String(row.note ?? row.notes ?? '').trim() || undefined,\n      item_id: row.item_id || null,\n      source_refs: buildSourceRefs(row, topSource),\n      raw: row\n    };\n  });\n\n  const normAllergy = allergyChanges.map((row, index) => {\n    const action = String(row.action ?? row.op ?? '').toLowerCase();\n    const payload = row.allergy_text ?? row.item ?? row.text ?? '';\n    return {\n      index,\n      action,\n      child: row.child || row.student || null,\n      allergy_text: typeof payload === 'string' ? payload.trim() : payload,\n      source_refs: buildSourceRefs(row, topSource),\n      raw: row\n    };\n  });\n\n  const normNotices = notices.map((notice, index) => ({\n    index,\n    text: String(notice.text ?? '').trim(),\n    audience: notice.audience || undefined,\n    priority: notice.priority || undefined,\n    source_refs: buildSourceRefs(notice, topSource),\n    raw: notice\n  }));\n\n  return { events: normEvents, snack_changes: normSnack, allergy_changes: normAllergy, notices: normNotices, topSource };\n}\n\nconst aggregator = {\n  runContext: null,\n  extractor: null,\n  calendar: [],\n  snackRows: [],\n  allergyRows: [],\n  opsRows: [],\n  debugKeys: []\n};\n\nfor (let inputIndex = 0; inputIndex < 8; inputIndex++) {\n  let items;\n  try {\n    items = $items(inputIndex);\n  } catch (err) {\n    continue;\n  }\n  if (!items || !items.length) continue;\n  for (const item of items) {\n    const json = item && item.json ? item.json : null;\n    if (!json || typeof json !== 'object') continue;\n    const keys = Object.keys(json);\n    aggregator.debugKeys.push(keys);\n    if (json.poll_start_iso || json.poll_end_iso || json.lookback_start_iso) {\n      aggregator.runContext = { ...(aggregator.runContext || {}), ...json };\n      continue;\n    }\n    if (!aggregator.extractor && (Array.isArray(json.events) || Array.isArray(json.snack_changes))) {\n      aggregator.extractor = json;\n      continue;\n    }\n    if (json.kind === 'calendar#event' || json.start || json.summary) {\n      aggregator.calendar.push(json);\n      continue;\n    }\n    if ('Week' in json || 'Child' in json || 'week' in json) {\n      aggregator.snackRows.push(json);\n      continue;\n    }\n    if ('Allergy' in json || 'allergy' in json || 'Allergies' in json) {\n      aggregator.allergyRows.push(json);\n      continue;\n    }\n    if ('Action' in json || 'Target' in json || 'Diff' in json || 'timestamp' in json) {\n      aggregator.opsRows.push(json);\n      continue;\n    }\n  }\n}\n\nif (!aggregator.extractor) {\n  throw new Error('Compile Current State: missing extractor payload. Saw input key sets: ' + JSON.stringify(aggregator.debugKeys.slice(0, 5)));\n}\n\nconst runContext = aggregator.runContext || {};\nif (!runContext.tz) runContext.tz = tzDefault;\nconst meta = {\n  generated_at_iso: new Date().toISOString(),\n  tz: runContext.tz,\n  poll_start_iso: runContext.poll_start_iso || null,\n  poll_end_iso: runContext.poll_end_iso || null,\n  lookback_start_iso: runContext.lookback_start_iso || null,\n  lookback_end_iso: runContext.lookback_end_iso || null\n};\n\nconst current = {\n  calendar: normalizeCalendar(aggregator.calendar),\n  snacks: normalizeSnackRows(aggregator.snackRows),\n  allergies: normalizeAllergies(aggregator.allergyRows),\n  opslog: aggregator.opsRows\n};\n\nconst proposed = normalizeProposed(aggregator.extractor);\n\nreturn [{\n  json: {\n    meta,\n    current,\n    proposed,\n    debug: {\n      source_counts: {\n        calendar: aggregator.calendar.length,\n        snack_rows: aggregator.snackRows.length,\n        allergy_rows: aggregator.allergyRows.length,\n        ops_rows: aggregator.opsRows.length\n      }\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        176
+      ],
+      "id": "e6a1a91e-fb7f-4836-a6e1-55ab440ddb24",
+      "name": "Compile Current State"
+    },
+    {
+      "parameters": {
+        "path": "=room-parent/approve",
+        "options": {},
+        "httpMethod": "POST",
+        "responseMode": "lastNode"
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -608,
+        -560
+      ],
+      "id": "af3934fc-cec5-450e-ada2-179783d0edd3",
+      "name": "Approve",
+      "webhookId": "c06eae16-d03c-43c6-8f82-093de279ae86"
+    },
+    {
+      "parameters": {
+        "path": "=room-parent/reject",
+        "options": {},
+        "httpMethod": "POST",
+        "responseMode": "lastNode"
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -608,
+        808
+      ],
+      "id": "adfc1987-0c67-4306-b701-debab6e3faeb",
+      "name": "Reject",
+      "webhookId": "c06eae16-d03c-43c6-8f82-093de279ae86"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst input = ($json && typeof $json === 'object') ? $json : {};\nconst store = $getWorkflowStaticData('global');\nif (!store || typeof store !== 'object') {\n  throw new Error('Static data unavailable for approval link generation.');\n}\nif (!store.approvalsHmacSecret) {\n  throw new Error('Approvals HMAC secret not set. Run Setup Approvals Secret first.');\n}\n\nconst ttlHours = 24;\nconst ttlMs = ttlHours * 60 * 60 * 1000;\n\nconst meta = input.meta || {};\nconst adminRows = Array.isArray(input.admin_rows) ? input.admin_rows : [];\nconst pendingStore = (store.pendingApprovals && typeof store.pendingApprovals === 'object') ? store.pendingApprovals : {};\n\nconst diffIso = meta.diff_generated_at_iso || meta.generated_at_iso || new Date().toISOString();\nconst diffMs = Date.parse(diffIso) || Date.now();\n\nconst baseUrlString = `${$execution.resumeUrl}`.replace('/webhook-waiting/', '/webhook/');\n\nfunction buildUrl(action, token, ts) {\n  const url = new URL(baseUrlString);\n  url.pathname = url.pathname.replace(/\\/[^/]*$/, `/room-parent/${action}`);\n  url.search = '';\n  url.searchParams.set('token', token);\n  url.searchParams.set('action', action);\n  url.searchParams.set('ts', ts);\n  return url.toString();\n}\n\nfunction signPayload(token, action, ts) {\n  const canonical = JSON.stringify({ token, action, ts });\n  const digest = crypto\n    .createHmac('sha256', store.approvalsHmacSecret)\n    .update(canonical)\n    .digest('hex');\n  return {\n    canonical,\n    signature: `sha256=${digest}`,\n  };\n}\n\nif (!adminRows.length) {\n  return [{\n    json: {\n      ...input,\n      approvals: {\n        count: 0,\n        ttl_hours: ttlHours,\n        generated_at_iso: diffIso,\n        items: [],\n      },\n      admin_sheet_rows_signed: [],\n      pending_tokens: input.pending_tokens || [],\n    },\n  }];\n}\n\nconst signedSheetRows = [];\nconst emailItems = [];\nconst tokens = new Set(input.pending_tokens || []);\n\nfor (const row of adminRows) {\n  const token = row.token;\n  if (!token) {\n    continue;\n  }\n\n  const ts = row.when_found_iso || diffIso;\n  const tsMs = Date.parse(ts) || diffMs;\n  const expiresAt = new Date(tsMs + ttlMs).toISOString();\n\n  const approveSignature = signPayload(token, 'approve', ts);\n  const rejectSignature = signPayload(token, 'reject', ts);\n  const approveUrl = buildUrl('approve', token, ts);\n  const rejectUrl = buildUrl('reject', token, ts);\n\n  const existing = (pendingStore[token] && typeof pendingStore[token] === 'object') ? pendingStore[token] : {};\n  const status = existing.status || 'Pending';\n\n  const scope = existing.scope\n    || row.scope\n    || (row.hmac_payload && typeof row.hmac_payload.action === 'string'\n      ? row.hmac_payload.action.split('.')[0]\n      : null);\n\n  existing.token = token;\n  existing.scope = scope;\n  existing.op = existing.op || row.op || null;\n  existing.created_at = existing.created_at || ts;\n  existing.expires_at = expiresAt;\n  existing.hmac_payload = existing.hmac_payload || row.hmac_payload || null;\n  existing.admin_row = {\n    ...row,\n    status,\n  };\n  existing.status = status;\n  existing.links = {\n    approve: { url: approveUrl, signature: approveSignature.signature, ts },\n    reject: { url: rejectUrl, signature: rejectSignature.signature, ts },\n    ttl_hours: ttlHours,\n    expires_at: expiresAt,\n  };\n\n  pendingStore[token] = existing;\n\n  signedSheetRows.push({\n    WhenFound: row.when_found_iso || diffIso,\n    Type: row.type || (scope ? scope.charAt(0).toUpperCase() + scope.slice(1) : ''),\n    Summary: row.summary || '',\n    Detail: row.detail || '',\n    SourceLink: row.source_url || '',\n    SourceType: row.source_type || '',\n    ApproveLink: approveUrl,\n    RejectLink: rejectUrl,\n    Status: status,\n    Token: token,\n    Action: (row.hmac_payload && row.hmac_payload.action) || (existing.hmac_payload && existing.hmac_payload.action) || '',\n    ExpiresAt: expiresAt,\n    ProcessedAt: existing.closed_at_iso || '',\n    Actor: existing.actor || '',\n  });\n\n  emailItems.push({\n    token,\n    type: row.type || scope || '',\n    summary: row.summary || '',\n    detail: row.detail || '',\n    whenFound: row.when_found_iso || diffIso,\n    sourceLink: row.source_url || '',\n    sourceType: row.source_type || '',\n    expiresAt,\n    ts,\n    approvals: {\n      approve: {\n        action: 'approve',\n        url: approveUrl,\n        headers: { 'X-Signature': approveSignature.signature },\n        payload: { token, action: 'approve', ts },\n      },\n      reject: {\n        action: 'reject',\n        url: rejectUrl,\n        headers: { 'X-Signature': rejectSignature.signature },\n        payload: { token, action: 'reject', ts },\n      },\n    },\n  });\n\n  tokens.add(token);\n}\n\nstore.pendingApprovals = pendingStore;\nstore.pendingApprovalsCount = Object.values(pendingStore)\n  .filter((record) => (record && (record.status || 'Pending') === 'Pending')).length;\n\nreturn [{\n  json: {\n    ...input,\n    approvals: {\n      count: emailItems.length,\n      ttl_hours: ttlHours,\n      generated_at_iso: diffIso,\n      items: emailItems,\n    },\n    admin_sheet_rows_signed: signedSheetRows,\n    pending_tokens: Array.from(tokens),\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -384,
+        -144
+      ],
+      "id": "522a0d1c-e6a2-4298-9c0e-1450357384b0",
+      "name": "Make Approval Links"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst store = $getWorkflowStaticData('global');\nif (!store || !store.approvalsHmacSecret) {\n  throw new Error('Approvals HMAC secret not configured.');\n}\n\nconst req = $json || {};\nconst headerMap = {};\nif (req.headers && typeof req.headers === 'object') {\n  for (const [key, value] of Object.entries(req.headers)) {\n    const normalized = key.toLowerCase();\n    headerMap[normalized] = Array.isArray(value) ? value[0] : value;\n  }\n}\n\nconst signatureHeader = headerMap['x-signature'];\nif (!signatureHeader) {\n  throw new Error('Missing X-Signature header.');\n}\n\nconst match = /^sha256=([a-f0-9]{64})$/i.exec(String(signatureHeader).trim());\nif (!match) {\n  throw new Error('Invalid X-Signature format.');\n}\nconst providedHex = match[1].toLowerCase();\n\nfunction coerceObject(value) {\n  if (value && typeof value === 'object') {\n    return value;\n  }\n  if (typeof value === 'string' && value.trim()) {\n    try { return JSON.parse(value); } catch (_) { /* ignore */ }\n  }\n  return {};\n}\n\nconst body = coerceObject(req.body);\nconst query = coerceObject(req.query);\n\nconst token = String(body.token ?? query.token ?? '').trim();\nconst action = String(body.action ?? query.action ?? '').trim().toLowerCase();\nconst ts = String(body.ts ?? query.ts ?? '').trim();\nconst actor = body.actor ?? query.actor ?? null;\n\nif (!token || !action || !ts) {\n  throw new Error('Missing token/action/ts payload fields.');\n}\n\nconst canonical = JSON.stringify({ token, action, ts });\nconst expectedHex = crypto\n  .createHmac('sha256', store.approvalsHmacSecret)\n  .update(canonical)\n  .digest('hex');\n\nconst provided = Buffer.from(providedHex, 'hex');\nconst expected = Buffer.from(expectedHex, 'hex');\nif (provided.length !== expected.length || !crypto.timingSafeEqual(provided, expected)) {\n  throw new Error('Signature mismatch.');\n}\n\nconst tsDate = new Date(ts);\nif (Number.isNaN(tsDate.getTime())) {\n  throw new Error('Invalid ts value.');\n}\nconst maxAgeMs = 24 * 60 * 60 * 1000;\nif (Math.abs(Date.now() - tsDate.getTime()) > maxAgeMs) {\n  throw new Error('Signature expired.');\n}\n\nconst payload = { ...body, token, action, ts };\nif (actor) {\n  payload.actor = actor;\n}\npayload._signature = `sha256=${expectedHex}`;\npayload._validatedAt = new Date().toISOString();\n\nconst outputs = [[], []];\nif (action === 'approve') {\n  outputs[0].push({ json: payload });\n} else if (action === 'reject') {\n  outputs[1].push({ json: payload });\n} else {\n  throw new Error(`Unsupported action \"${action}\".`);\n}\n\nreturn outputs;",
+        "outputs": 2
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -496,
+        -560
+      ],
+      "id": "5ab2cba7-6f27-478e-9943-e366065ed9d5",
+      "name": "Validate HMAC"
+    },
+    {
+      "parameters": {
+        "jsCode": "const action = String($json.action || '').toLowerCase();\nif (action && action !== 'approve') {\n  return [];\n}\n\nconst token = String($json.token || '').trim();\nif (!token) {\n  throw new Error('Missing approval token.');\n}\n\nconst store = $getWorkflowStaticData('global');\nconst pendingStore = (store.pendingApprovals && typeof store.pendingApprovals === 'object') ? store.pendingApprovals : null;\nif (!pendingStore) {\n  throw new Error('No pending approvals are registered.');\n}\n\nconst record = pendingStore[token];\nif (!record) {\n  throw new Error('Unknown approval token.');\n}\n\nconst status = record.status || 'Pending';\nif (status !== 'Pending') {\n  throw new Error(`Approval token already resolved (${status}).`);\n}\n\nconst now = new Date();\nconst expiresAtMs = record.expires_at ? Date.parse(record.expires_at) : null;\nif (expiresAtMs && Number.isFinite(expiresAtMs) && now.getTime() > expiresAtMs) {\n  record.status = 'Expired';\n  record.closed_at_iso = now.toISOString();\n  pendingStore[token] = record;\n  store.pendingApprovalsCount = Object.values(pendingStore)\n    .filter((entry) => (entry && (entry.status || 'Pending') === 'Pending')).length;\n  throw new Error('Approval token expired.');\n}\n\nconst actor = $json.actor || '';\nconst processedAt = now.toISOString();\n\nrecord.status = 'Approved';\nrecord.actor = actor;\nrecord.closed_at_iso = processedAt;\nif (record.admin_row && typeof record.admin_row === 'object') {\n  record.admin_row.Status = 'Approved';\n  record.admin_row.ProcessedAt = processedAt;\n  record.admin_row.Actor = actor;\n}\npendingStore[token] = record;\n\nstore.pendingApprovals = pendingStore;\nstore.pendingApprovalsLastResolutionIso = processedAt;\nstore.pendingApprovalsCount = Object.values(pendingStore)\n  .filter((entry) => (entry && (entry.status || 'Pending') === 'Pending')).length;\n\nreturn [{\n  json: {\n    ...($json || {}),\n    token,\n    approved: true,\n    status: 'approved',\n    processedAt,\n    actor,\n    pending: record,\n    apply: record.apply || null,\n    scope: record.scope || null,\n    op: record.op || null,\n    hmacPayload: record.hmac_payload || null,\n    adminRow: record.admin_row || null,\n    meta: record.meta || {},\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -384,
+        -560
+      ],
+      "id": "2e3333ed-8588-413c-a13c-05833f8f6abb",
+      "name": "Validate Token - Approve"
+    },
+    {
+      "parameters": {
+        "jsCode": "const action = String($json.action || '').toLowerCase();\nif (action && action !== 'reject') {\n  return [];\n}\n\nconst token = String($json.token || '').trim();\nif (!token) {\n  throw new Error('Missing approval token.');\n}\n\nconst store = $getWorkflowStaticData('global');\nconst pendingStore = (store.pendingApprovals && typeof store.pendingApprovals === 'object') ? store.pendingApprovals : null;\nif (!pendingStore) {\n  throw new Error('No pending approvals are registered.');\n}\n\nconst record = pendingStore[token];\nif (!record) {\n  throw new Error('Unknown approval token.');\n}\n\nconst status = record.status || 'Pending';\nif (status !== 'Pending') {\n  throw new Error(`Approval token already resolved (${status}).`);\n}\n\nconst now = new Date();\nconst expiresAtMs = record.expires_at ? Date.parse(record.expires_at) : null;\nif (expiresAtMs && Number.isFinite(expiresAtMs) && now.getTime() > expiresAtMs) {\n  record.status = 'Expired';\n  record.closed_at_iso = now.toISOString();\n  pendingStore[token] = record;\n  store.pendingApprovalsCount = Object.values(pendingStore)\n    .filter((entry) => (entry && (entry.status || 'Pending') === 'Pending')).length;\n  throw new Error('Approval token expired.');\n}\n\nconst actor = $json.actor || '';\nconst processedAt = now.toISOString();\n\nrecord.status = 'Rejected';\nrecord.actor = actor;\nrecord.closed_at_iso = processedAt;\nif (record.admin_row && typeof record.admin_row === 'object') {\n  record.admin_row.Status = 'Rejected';\n  record.admin_row.ProcessedAt = processedAt;\n  record.admin_row.Actor = actor;\n}\npendingStore[token] = record;\n\nstore.pendingApprovals = pendingStore;\nstore.pendingApprovalsLastResolutionIso = processedAt;\nstore.pendingApprovalsCount = Object.values(pendingStore)\n  .filter((entry) => (entry && (entry.status || 'Pending') === 'Pending')).length;\n\nreturn [{\n  json: {\n    ...($json || {}),\n    token,\n    approved: false,\n    status: 'rejected',\n    processedAt,\n    actor,\n    pending: record,\n    apply: record.apply || null,\n    scope: record.scope || null,\n    op: record.op || null,\n    hmacPayload: record.hmac_payload || null,\n    adminRow: record.admin_row || null,\n    meta: record.meta || {},\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -384,
+        808
+      ],
+      "id": "a4bac3b2-2ac4-4bec-ab59-d65a8da10bf8",
+      "name": "Validate Token - Reject"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 120
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -608,
+        120
+      ],
+      "id": "51ba2158-8c0e-4735-8705-e3972420d60c",
+      "name": "Main Poll Schedule"
+    },
+    {
+      "parameters": {
+        "numberInputs": 6
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        640,
+        168
+      ],
+      "id": "254a3ad9-e9bf-47c6-b072-536903c8997a",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "path": "room-parent/setup-secret",
+        "httpMethod": "POST",
+        "responseMode": "lastNode"
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -864,
+        -560
+      ],
+      "id": "cc5c9af2-f2b6-4e64-b47d-30d9d3d76560",
+      "name": "Setup Approvals Secret",
+      "webhookId": "setup-approvals-secret"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = typeof $json.body === 'object' && $json.body !== null ? $json.body : $json\nconst secret = typeof data.secret === 'string' ? data.secret.trim() : ''\nif (!secret) {\n  throw new Error('Missing secret in request body (expected JSON {\"secret\":\"...\"})')\n}\nconst store = $getWorkflowStaticData('global')\nstore.approvalsHmacSecret = secret\nreturn [{ json: { status: 'stored' } }]\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -608,
+        -560
+      ],
+      "id": "aa57aea8-bbdb-49a0-8937-9cdb2351b424",
+      "name": "Store Approvals Secret"
+    },
+    {
+      "parameters": {
+        "jsCode": "const tz = 'America/Los_Angeles';\nconst now = new Date();\nconst local = new Date(now.toLocaleString('en-US', { timeZone: tz }));\nconst hour = local.getHours();\nconst minute = local.getMinutes();\nconst within = hour >= 8 && (hour < 20 || (hour == 20 && minute === 0));\nif (!within) {\n  return [];\n}\nreturn [{ json: { window: 'poll', now_iso: now.toISOString(), local_iso: local.toISOString() } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -352,
+        120
+      ],
+      "id": "b3b5d6f0-e1c5-4a2a-8d6b-cd0a4cbfd4c9",
+      "name": "In Window?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const tz = 'America/Los_Angeles';\nconst store = $getWorkflowStaticData('global');\nconst nowUtc = new Date();\nconst local = new Date(nowUtc.toLocaleString('en-US', { timeZone: tz }));\nconst pollDurationMins = 120;\nconst pollEnd = local;\nconst pollStart = new Date(local.getTime() - pollDurationMins * 60 * 1000);\nconst lastPoll = store.lastPollTs ? new Date(store.lastPollTs) : null;\n\n// Use 30-day lookback for first run, otherwise use last poll time\nconst firstRunLookbackDays = 30;\nconst firstRunLookback = new Date(local.getTime() - firstRunLookbackDays * 24 * 60 * 60 * 1000);\nconst lookbackStart = lastPoll && !Number.isNaN(lastPoll.valueOf()) ? lastPoll : firstRunLookback;\n\nstore.lastPollTs = local.toISOString();\nreturn [{ json: {\n  poll_start_iso: pollStart.toISOString(),\n  poll_end_iso: pollEnd.toISOString(),\n  lookback_start_iso: lookbackStart.toISOString(),\n  lookback_end_iso: pollEnd.toISOString(),\n  tz,\n  is_first_run: !lastPoll\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        120
+      ],
+      "id": "56187978-b9a6-4b4d-a4b7-3e1fa3fd94b5",
+      "name": "Set Run Context"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "cron": [
+            {
+              "hour": "18",
+              "minute": "0",
+              "dayOfWeek": "*",
+              "dayOfMonth": "*",
+              "month": "*"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -608,
+        -200
+      ],
+      "id": "c35a3ffb-25d2-415b-836d-1fa8cb7c4e3e",
+      "name": "Daily Digest Schedule"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "cron": [
+            {
+              "hour": "18",
+              "minute": "0",
+              "dayOfWeek": "1",
+              "dayOfMonth": "*",
+              "month": "*"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -608,
+        -360
+      ],
+      "id": "48684f15-ac7f-4d96-a3b7-8f82a7e7441e",
+      "name": "Weekly Digest Schedule"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst store = $getWorkflowStaticData('global');\nconst now = new Date();\nconst windowMs = 24 * 60 * 60 * 1000;\nconst since = new Date(now.getTime() - windowMs);\nconst pendingMap = (store.pendingApprovals && typeof store.pendingApprovals === 'object') ? store.pendingApprovals : {};\nconst pending = Object.values(pendingMap).filter((item) => item && (item.status || 'Pending') === 'Pending');\nconst approved = (store.messaging && Array.isArray(store.messaging.approved)) ? store.messaging.approved : [];\nconst recentApproved = approved.filter((entry) => {\n  const ts = entry.processedAt ? Date.parse(entry.processedAt) : NaN;\n  return Number.isFinite(ts) && ts >= since.getTime();\n});\nconst whatsappDraft = store.messaging && store.messaging.whatsappDraft || '';\nreturn [{ json: {\n  digest: 'daily',\n  generatedAt: now.toISOString(),\n  pending,\n  recentApproved,\n  whatsappDraft,\n  windowStartIso: since.toISOString(),\n  windowEndIso: now.toISOString(),\n  pendingCount: pending.length\n} }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -352,
+        -200
+      ],
+      "id": "4d072e0e-4c95-4418-9851-77731d0bce5e",
+      "name": "Daily Digest Prep"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst store = $getWorkflowStaticData('global');\nconst now = new Date();\nconst windowMs = 7 * 24 * 60 * 60 * 1000;\nconst since = new Date(now.getTime() - windowMs);\nconst pendingMap = (store.pendingApprovals && typeof store.pendingApprovals === 'object') ? store.pendingApprovals : {};\nconst pending = Object.values(pendingMap).filter((item) => item && (item.status || 'Pending') === 'Pending');\nconst approved = (store.messaging && Array.isArray(store.messaging.approved)) ? store.messaging.approved : [];\nconst recentApproved = approved.filter((entry) => {\n  const ts = entry.processedAt ? Date.parse(entry.processedAt) : NaN;\n  return Number.isFinite(ts) && ts >= since.getTime();\n});\nconst counts = recentApproved.reduce((acc, entry) => {\n  const scope = entry.apply && entry.apply.scope || 'unknown';\n  acc[scope] = (acc[scope] || 0) + 1;\n  return acc;\n}, {});\nreturn [{ json: {\n  digest: 'weekly',\n  generatedAt: now.toISOString(),\n  pending,\n  recentApproved,\n  metrics: counts,\n  whatsappDraft: store.messaging && store.messaging.whatsappDraft || '',\n  windowStartIso: since.toISOString(),\n  windowEndIso: now.toISOString(),\n  pendingCount: pending.length\n} }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -352,
+        -360
+      ],
+      "id": "1f51f501-cdee-46db-ba57-b2ca967b29c5",
+      "name": "Weekly Digest Prep"
+    },
+    {
+      "parameters": {
+        "jsCode": "const [item] = $input.all();\nconst data = item ? { ...item.json } : {};\nconst lookbackIso = data.lookback_start_iso || data.poll_start_iso;\nconst nowIso = new Date().toISOString();\nconst lookbackDate = lookbackIso ? new Date(lookbackIso) : new Date(nowIso);\nconst ymd = lookbackIso ? lookbackIso.slice(0, 10).replace(/-/g, '/') : nowIso.slice(0, 10).replace(/-/g, '/');\nconst diffMs = Math.max(1, Date.now() - lookbackDate.getTime());\nconst lookbackDays = Math.min(30, Math.max(1, Math.ceil(diffMs / 86400000)));\ndata.gmail_query = `(in:inbox OR label:TRIS) (after:${ymd}) (newer_than:${lookbackDays}d) (\n  from:(communications@therenaissanceschool.org)\n  OR replyto:(communications@therenaissanceschool.org)\n  OR subject:(\"TRIS Newsletter -\")\n  OR to:(parents-sequoia@therenaissanceschool.org)\n  OR cc:(parents-sequoia@therenaissanceschool.org)\n  OR from:(katrinar@therenaissanceschool.org)\n  OR subject:(\"Sequoia Update for\")\n)`;\nconst driveFolderId = 'GOOGLE_DRIVE_FOLDER_ID_PLACEHOLDER';\nconst driveQueryTs = lookbackIso || nowIso;\ndata.drive_folder_id = driveFolderId;\ndata.drive_folder_url = `https://drive.google.com/drive/folders/${driveFolderId}`;\ndata.extractor_prompt_url = 'https://raw.githubusercontent.com/dshein87/personal-projects/main/projects/Sequoia%20Room%20Parent%20Agent/prompts/extractor.txt';\n\n// FIXED: Recursive search through all subfolders\n// Searches for PDFs with \"SEQUOIA\" in name/path/content that were modified after the lookback time\ndata.drive_query = `mimeType='application/pdf' and trashed=false and modifiedTime >= '${driveQueryTs}' and fullText contains 'SEQUOIA'`;\n\nreturn [{ json: data }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        64,
+        120
+      ],
+      "id": "e5125387-22f8-4107-8212-3f3d283c3974",
+      "name": "Build Ingestion Queries"
+    },
+    {
+      "parameters": {
+        "jsCode": "const decodeBase64Url = (input) => {\n          if (!input) return '';\n          const normalized = input.replace(/-/g, '+').replace(/_/g, '/');\n          try {\n            return Buffer.from(normalized, 'base64').toString('utf8');\n          } catch (err) {\n            return '';\n          }\n        };\n\n        const findHeader = (payload, name) => {\n          const headers = payload?.headers || [];\n          const target = name.toLowerCase();\n          for (const header of headers) {\n            if ((header.name || '').toLowerCase() === target) {\n              return header.value || '';\n            }\n          }\n          return '';\n        };\n\n        const collectMimeParts = (parts = [], matcher) => {\n          const hits = [];\n          for (const part of parts) {\n            if (!part) continue;\n            if (matcher(part)) {\n              hits.push(part);\n            }\n            if (Array.isArray(part.parts) && part.parts.length) {\n              hits.push(...collectMimeParts(part.parts, matcher));\n            }\n          }\n          return hits;\n        };\n\n        const getPlainBody = (payload) => {\n          const parts = collectMimeParts(payload?.parts || [], part => (part.mimeType || '').startsWith('text/plain'));\n          for (const part of parts) {\n            const data = part.body?.data;\n            if (data) {\n              const text = decodeBase64Url(data).trim();\n              if (text) return text;\n            }\n          }\n          const bodyData = payload?.body?.data;\n          return bodyData ? decodeBase64Url(bodyData).trim() : '';\n        };\n\n        const getHtmlBody = (payload) => {\n          const parts = collectMimeParts(payload?.parts || [], part => (part.mimeType || '').startsWith('text/html'));\n          for (const part of parts) {\n            const data = part.body?.data;\n            if (data) {\n              const html = decodeBase64Url(data).trim();\n              if (html) return html;\n            }\n          }\n          return '';\n        };\n\nconst stripHtml = (html) => {\n          if (!html) return '';\n          return html\n            .replace(/\\r\\n/g, '\\n')\n            .replace(/<\\/(p|div|br)[^>]*>/gi, '\\n')\n            .replace(/<script[\\s\\S]*?<\\/script>/gi, '')\n            .replace(/<style[\\s\\S]*?<\\/style>/gi, '')\n            .replace(/<[^>]+>/g, ' ')\n            .replace(/\\n{2,}/g, '\\n')\n            .replace(/[ \\t]{2,}/g, ' ')\n            .trim();\n        };\n        const collectAttachments = (payload) => {\n          const attachments = [];\n          const gather = (part) => {\n            if (!part) return;\n            if (part.filename && part.body?.attachmentId) {\n              attachments.push({\n                filename: part.filename,\n                mimeType: part.mimeType || '',\n                size: part.body?.size ?? null,\n                attachment_id: part.body.attachmentId,\n              });\n            }\n            if (Array.isArray(part.parts)) {\n              part.parts.forEach(gather);\n            }\n          };\n          gather(payload);\n          return attachments;\n        };\n\n        const items = $input.all();\n        const results = [];\n\n        for (const item of items) {\n          const message = item.json || {};\n          const payload = message.payload || {};\n          const subject = findHeader(payload, 'Subject') || message.snippet || '';\n          const from = findHeader(payload, 'From');\n          const dateHeader = findHeader(payload, 'Date');\n          const messageId = (findHeader(payload, 'Message-Id') || message.id || '').replace(/[<>]/g, '');\n          const internalDate = message.internalDate ? new Date(Number(message.internalDate)) : null;\n          const sentAt = dateHeader ? new Date(dateHeader) : internalDate;\n          const plain = getPlainBody(payload);\n          const html = getHtmlBody(payload);\n          const body = plain || stripHtml(html) || (message.snippet || '').trim();\n          const baseUrl = `https://mail.google.com/mail/u/0/#inbox/${message.id}`;\n          const textLines = [];\n          if (subject) textLines.push(`Subject: ${subject}`);\n          if (body) {\n            if (textLines.length) textLines.push('');\n            textLines.push(body);\n          }\n          const normalizedText = textLines.join('\n').trim();\n          const attachments = collectAttachments(payload).map((att, index) => ({\n            ...att,\n            source_type: 'email_attachment',\n            source_url: baseUrl,\n            position: index,\n          }));\n\n          results.push({\n            json: {\n              source_type: 'email',\n              source_url: baseUrl,\n              message_id: messageId,\n              thread_id: message.threadId || null,\n              subject,\n              from,\n              delivered_at: sentAt ? sentAt.toISOString() : null,\n              snippet: message.snippet || '',\n              body_plain: plain || '',\n              body_html: html || '',\n              text: normalizedText,\n              raw_text: normalizedText,\n              attachments,\n              gmail_metadata: {\n                label_ids: message.labelIds || [],\n                history_id: message.historyId || null,\n              },\n              ingestion_origin: 'gmail',\n              ingested_at: new Date().toISOString(),\n            },\n          });\n        }\n\n        return results;",
+        "mode": "runOnceForEachItem"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -16,
+        -144
+      ],
+      "id": "0e348187-2f8b-41f7-a3be-073960bb9d27",
+      "name": "Gmail Message → Text"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "download",
+        "fileId": "={{$json.id}}",
+        "options": {
+          "downloadFileName": "={{$json.name}}"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -16,
+        -336
+      ],
+      "id": "2234f0ea-3db5-47ea-832a-5abb9c9ca5df",
+      "name": "Drive Download",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "3Mlbk1EdQh6pn35w",
+          "name": "gdrive-rpu"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let pdfParse = null;\ntry {\n  pdfParse = require('pdf-parse');\n} catch (error) {\n  pdfParse = null;\n}\n\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const json = { ...(item.json || {}) };\n  const binary = item.binary?.data?.data;\n  let text = '';\n  let parseError = null;\n\n  if (binary) {\n    const buffer = Buffer.from(binary, 'base64');\n    if (pdfParse) {\n      try {\n        const parsed = await pdfParse(buffer);\n        text = (parsed.text || '').trim();\n        if (parsed.info) {\n          json.pdf_info = parsed.info;\n        }\n      } catch (error) {\n        parseError = error.message;\n      }\n    } else {\n      parseError = 'pdf-parse module not available';\n    }\n  } else {\n    parseError = 'missing binary data';\n  }\n\n  const sourceUrl = json.webViewLink || (json.id ? `https://drive.google.com/file/d/${json.id}/view` : null);\n\n  const enriched = {\n    ...json,\n    text,\n    raw_text: text,\n    source_type: 'pdf',\n    source_url: sourceUrl,\n    file_name: json.name || null,\n    file_id: json.id || null,\n    modified_time: json.modifiedTime || null,\n    created_time: json.createdTime || null,\n    ingestion_origin: 'drive',\n    ingested_at: new Date().toISOString(),\n  };\n\n  if (parseError) {\n    enriched.pdf_parse_error = parseError;\n  }\n\n  results.push({\n    json: enriched,\n    binary: item.binary,\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -336
+      ],
+      "id": "bb8e4e25-8b10-4f65-a4af-a14e58abfd5a",
+      "name": "PDF → Text"
+    },
+    {
+      "parameters": {
+        "jsCode": "const visionKey = process.env.GOOGLE_VISION_API_KEY || '';\nconst endpoint = process.env.GOOGLE_VISION_ENDPOINT || 'https://vision.googleapis.com/v1/images:annotate';\n\nconst callVision = async (base64Data) => {\n  const payload = {\n    requests: [\n      {\n        image: { content: base64Data },\n        features: [\n          { type: 'DOCUMENT_TEXT_DETECTION' },\n        ],\n      },\n    ],\n  };\n\n  const response = await fetch(`${endpoint}?key=${visionKey}`, {\n    method: 'POST',\n    headers: {\n      'Content-Type': 'application/json',\n    },\n    body: JSON.stringify(payload),\n  });\n\n  if (!response.ok) {\n    const errText = await response.text();\n    throw new Error(`Vision API ${response.status}: ${errText.slice(0, 200)}`);\n  }\n\n  const data = await response.json();\n  const text = data?.responses?.[0]?.fullTextAnnotation?.text || '';\n  return { text, raw: data };\n};\n\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const json = { ...(item.json || {}) };\n  const existingText = (json.text || '').trim();\n\n  if (existingText) {\n    json.ocr_status = 'not_needed';\n    results.push({ json, binary: item.binary });\n    continue;\n  }\n\n  const base64Data = item.binary?.data?.data;\n  if (!base64Data) {\n    json.ocr_status = 'missing_binary';\n    results.push({ json, binary: item.binary });\n    continue;\n  }\n\n  if (!visionKey) {\n    json.ocr_status = 'missing_api_key';\n    results.push({ json, binary: item.binary });\n    continue;\n  }\n\n  try {\n    const visionResult = await callVision(base64Data);\n    const normalized = (visionResult.text || '').trim();\n    if (normalized) {\n      json.text = normalized;\n      json.raw_text = normalized;\n      json.ocr_status = 'vision';\n      json.ocr_metadata = {\n        provider: 'google_vision',\n        char_count: normalized.length,\n      };\n    } else {\n      json.ocr_status = 'vision_no_text';\n    }\n  } catch (error) {\n    json.ocr_status = 'vision_error';\n    json.ocr_error = error.message;\n  }\n\n  results.push({ json, binary: item.binary });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        -336
+      ],
+      "id": "b576dc02-cc0e-4a3c-a111-fb6f0cac36cf",
+      "name": "OCR Fallback"
+    },
+    {
+      "parameters": {
+        "jsCode": "const gmailItems = $input.all(0);\nconst driveItems = $input.all(1);\nconst combined = [];\n\nconst normalise = (item, inputIndex) => {\n  if (!item) return;\n  const json = { ...(item.json || {}) };\n  if (!json.text) {\n    json.text = json.raw_text || '';\n  }\n  json.source_type = json.source_type || (inputIndex === 0 ? 'email' : 'pdf');\n  combined.push({\n    json,\n    binary: item.binary,\n    pairedItem: item.pairedItem,\n  });\n};\n\ngmailItems.forEach(item => normalise(item, 0));\ndriveItems.forEach(item => normalise(item, 1));\n\ncombined.sort((a, b) => {\n  const getTs = (json) => {\n    const fields = [\n      json.delivered_at,\n      json.modified_time,\n      json.created_time,\n      json.ingested_at,\n    ];\n    for (const value of fields) {\n      if (value) {\n        const ts = new Date(value).getTime();\n        if (!Number.isNaN(ts)) return ts;\n      }\n    }\n    return 0;\n  };\n  return getTs(b.json) - getTs(a.json);\n});\n\nreturn combined;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        -144
+      ],
+      "id": "b223b81a-dcc1-41e7-92cf-5e7332db312b",
+      "name": "Merge Ingestion"
+    },
+    {
+      "parameters": {
+        "responseFormat": "string",
+        "url": "={{$json.extractor_prompt_url}}",
+        "options": {
+          "fullResponse": false
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        256,
+        120
+      ],
+      "id": "34c29192-18e6-419e-9a3e-7d71ce17d274",
+      "name": "Load Extractor Prompt"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all(0);  // Items from first input (Merge Ingestion)\nconst promptItems = $input.all(1);  // Items from second input (HTTP Request)\n\n// HTTP Request nodes typically return the response body directly as a string,\n// or in json property if it's JSON, or in data property\nlet promptString = \"\";\n\nif (promptItems && promptItems.length > 0) {\n  const promptItem = promptItems[0];\n  const promptData = promptItem.json;\n  \n  // Try multiple ways to extract the prompt text\n  if (typeof promptData === \"string\") {\n    promptString = promptData;\n  } else if (promptData) {\n    promptString = promptData.data || promptData.body || promptData.text || promptData.content || promptData.prompt || \"\";\n  }\n  \n  // If still empty, try binary data\n  if (!promptString && promptItem.binary && promptItem.binary.data) {\n    promptString = promptItem.binary.data.toString('utf8');\n  }\n}\n\nif (!promptString) {\n  throw new Error(\"Extractor prompt did not load any text\");\n}\n\nif (!items || items.length === 0) {\n  console.log(\"No ingestion data available - upstream nodes may not have executed\");\n  return [];\n}\n\nreturn items.map(item => {\n  const json = item.json || {};\n  const content = json.text || json.raw_text || \"\";\n  const sourceType = json.source_type || \"unknown\";\n  const sourceUrl = json.source_url || \"\";\n  const assembledPrompt = `${promptString.trim()}\n\nSOURCE_TYPE: ${sourceType}\nSOURCE_URL: ${sourceUrl}\n\nCONTENT:\n${content}`;\n\n  return {\n    json: {\n      ...json,\n      prompt_template: promptString,\n      prompt_text: assembledPrompt,\n    },\n    binary: item.binary,\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        -144
+      ],
+      "id": "e328f074-460d-4b73-81f2-2aded1fe7f88",
+      "name": "Attach Extractor Prompt"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        -32
+      ],
+      "id": "d550917d-1d98-4c7f-b27c-c442535ca602",
+      "name": "Pass Ingestion Metadata"
+    },
+    {
+      "parameters": {
+        "jsCode": "const llmItems = $input.all(0);\nconst metaItems = $input.all(1);\nconst results = [];\nconst length = Math.max(llmItems.length, metaItems.length);\n\nfor (let i = 0; i < length; i++) {\n  const llm = llmItems[i] || llmItems[llmItems.length - 1] || { json: {} };\n  const meta = metaItems[i] || metaItems[metaItems.length - 1] || { json: {} };\n\n  const llmJson = typeof llm.json === 'object' && llm.json !== null ? { ...llm.json } : { text: llm.json };\n  const metaJson = { ...(meta.json || {}) };\n\n  if (metaJson.prompt_text) {\n    delete metaJson.prompt_text;\n  }\n\n  const combined = {\n    ...llmJson,\n    __ingestion: metaJson,\n  };\n\n  results.push({\n    json: combined,\n    binary: llm.binary || meta.binary,\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        512,
+        -144
+      ],
+      "id": "3f1af4e0-271d-41a6-944b-7035dd884a36",
+      "name": "Combine Extractor Output"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_SHEET_ID_PLACEHOLDER",
+          "mode": "list",
+          "cachedResultName": "TRIS Sequioa 2025-26 Snack Week Schedule",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "OpsLog",
+          "mode": "list",
+          "cachedResultName": "OpsLog"
+        },
+        "returnAll": true,
+        "options": {
+          "valueRenderMode": "FORMATTED_VALUE"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        416,
+        440
+      ],
+      "id": "db717918-e533-415f-82fb-0ebd11a9acd6",
+      "name": "OpsLog Snapshot",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "opmsUZ0EOPU1PD9R",
+          "name": "gsheets-rpu"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nfunction slugify(input) {\n  return String(input ?? '')\n    .toLowerCase()\n    .normalize('NFKD')\n    .replace(/[^a-z0-9]+/g, ' ')\n    .trim()\n    .replace(/\\s+/g, '-');\n}\n\nfunction ensureIso(value) {\n  if (!value) return null;\n  if (value instanceof Date) return value.toISOString();\n  if (typeof value === 'number') return new Date(value).toISOString();\n  if (typeof value !== 'string') return null;\n  const trimmed = value.trim();\n  if (!trimmed) return null;\n  const parsed = new Date(trimmed);\n  if (!Number.isNaN(parsed.valueOf())) return parsed.toISOString();\n  return null;\n}\n\nfunction makeCalendarKey(summary, startIso) {\n  const titlePart = slugify(summary);\n  const timePart = startIso ? startIso.slice(0, 16) : 'no-time';\n  return `${titlePart}|${timePart}`;\n}\n\nfunction createToken(scope, dedupeKey, payload) {\n  const hash = crypto.createHash('sha256');\n  hash.update(scope || '');\n  hash.update('|');\n  hash.update(dedupeKey || '');\n  hash.update('|');\n  hash.update(JSON.stringify(payload || {}));\n  return hash.digest('hex').slice(0, 24);\n}\n\nfunction buildHmacPayload(token, action, dedupeKey, requestedAtIso) {\n  return {\n    version: 1,\n    token,\n    action,\n    dedupe_key: dedupeKey,\n    requested_at: requestedAtIso,\n  };\n}\n\nfunction normalizeValue(value) {\n  if (value === undefined || value === null) return '';\n  return String(value).trim();\n}\n\nfunction sameValue(a, b) {\n  return normalizeValue(a) === normalizeValue(b);\n}\n\nfunction describeCalendarDiff(existing, next) {\n  if (!existing) {\n    return 'Create new event';\n  }\n  const changes = [];\n  if (!sameValue(existing.summary, next.summary)) changes.push('summary');\n  if (!sameValue(existing.start_iso, next.start_iso)) changes.push('start');\n  if (!sameValue(existing.end_iso, next.end_iso)) changes.push('end');\n  if (!sameValue(existing.location, next.location)) changes.push('location');\n  if (!sameValue(existing.description, next.description)) changes.push('description');\n  return changes.length ? `Update ${changes.join(', ')}` : 'No change';\n}\n\nfunction firstSourceRef(action) {\n  const refs = action.source_refs;\n  if (!Array.isArray(refs) || !refs.length) return null;\n  return refs[0];\n}\n\nfunction buildAdminRow({\n  action,\n  scope,\n  whenIso,\n  summaryText,\n  detail,\n}) {\n  const ref = firstSourceRef(action);\n  return {\n    token: action.approval_token,\n    scope,\n    type: scope === 'calendar' ? 'Calendar' : scope === 'snack' ? 'Snack' : scope,\n    when_found_iso: whenIso,\n    summary: summaryText,\n    detail: detail || null,\n    source_url: ref?.url || null,\n    source_type: ref?.type || null,\n    dedupe_key: action.dedupe_key,\n    status: 'Pending',\n    hmac_payload: action.hmac_payload,\n  };\n}\n\nfunction buildAdminSheetRow(adminRow) {\n  return {\n    WhenFound: adminRow.when_found_iso,\n    Type: adminRow.type,\n    Summary: adminRow.summary,\n    Detail: adminRow.detail || '',\n    SourceLink: adminRow.source_url || '',\n    SourceType: adminRow.source_type || '',\n    Status: adminRow.status,\n    Token: adminRow.token,\n    DedupeKey: adminRow.dedupe_key || '',\n    Action: adminRow.hmac_payload?.action || '',\n  };\n}\n\nfunction buildPendingRecord({ action, applyPayload, meta }) {\n  return {\n    token: action.approval_token,\n    scope: action.scope,\n    op: action.op,\n    dedupe_key: action.dedupe_key,\n    created_at: meta.generated_at_iso,\n    hmac_payload: action.hmac_payload,\n    admin_row: action.admin_row,\n    apply: applyPayload,\n    source_refs: action.source_refs || null,\n    meta: {\n      summary: action.summary || action.week_label || null,\n      generated_at: meta.generated_at_iso,\n      poll_start_iso: meta.poll_start_iso || null,\n      poll_end_iso: meta.poll_end_iso || null,\n    },\n  };\n}\n\nconst input = $json || {};\nconst meta = input.meta || {};\nconst nowIso = new Date().toISOString();\nif (!meta.generated_at_iso) meta.generated_at_iso = nowIso;\n\nconst current = input.current || {};\nconst proposed = input.proposed || {};\n\nconst currentCalendar = Array.isArray(current.calendar) ? current.calendar : [];\nconst currentSnacks = Array.isArray(current.snacks) ? current.snacks : [];\nconst proposedEvents = Array.isArray(proposed.events) ? proposed.events : [];\nconst proposedSnackChanges = Array.isArray(proposed.snack_changes) ? proposed.snack_changes : [];\nconst proposedAllergyChanges = Array.isArray(proposed.allergy_changes) ? proposed.allergy_changes : [];\nconst proposedNotices = Array.isArray(proposed.notices) ? proposed.notices : [];\n\nconst calendarByKey = new Map();\nconst calendarById = new Map();\nfor (const event of currentCalendar) {\n  const key = event.dedupe_key || makeCalendarKey(event.summary || '', event.start_iso);\n  if (key) calendarByKey.set(key, event);\n  if (event.event_id) calendarById.set(event.event_id, event);\n}\n\nconst snackByKey = new Map();\nfor (const row of currentSnacks) {\n  const key = row.week_key || slugify(row.week_label || '');\n  if (key) snackByKey.set(key, row);\n}\n\nconst calendarActions = [];\nconst snackActions = [];\nconst adminRows = [];\nconst adminSheetRows = [];\nconst warnings = [];\nconst pendingLookup = {};\nconst tokens = new Set();\nconst dedupeGuards = new Set();\n\nfunction registerAction(action, applyPayload) {\n  if (!action.approval_token) return;\n  if (dedupeGuards.has(action.approval_token)) return;\n  dedupeGuards.add(action.approval_token);\n  tokens.add(action.approval_token);\n  const pendingRecord = buildPendingRecord({ action, applyPayload, meta });\n  pendingLookup[action.approval_token] = pendingRecord;\n  const adminRow = buildAdminRow({\n    action,\n    scope: action.scope,\n    whenIso: meta.generated_at_iso,\n    summaryText: action.admin_summary,\n    detail: action.admin_detail,\n  });\n  action.admin_row = adminRow;\n  adminRows.push(adminRow);\n  adminSheetRows.push(buildAdminSheetRow(adminRow));\n}\n\nfor (const item of proposedEvents) {\n  const op = item.op === 'cancel' ? 'cancel' : 'upsert';\n  const summary = item.summary || '';\n  const startIso = item.start_iso || null;\n  const dedupeKey = item.dedupe_key || makeCalendarKey(summary, startIso);\n  const sourceRefs = item.source_refs || [];\n  let existing = null;\n  if (item.raw && item.raw.event_id) {\n    existing = calendarById.get(item.raw.event_id) || null;\n  }\n  if (!existing && item.event_id) {\n    existing = calendarById.get(item.event_id) || null;\n  }\n  if (!existing && dedupeKey) {\n    existing = calendarByKey.get(dedupeKey) || null;\n  }\n\n  if (!summary) {\n    warnings.push('Calendar entry missing summary, skipping.');\n    continue;\n  }\n\n  if (op === 'cancel') {\n    const target = existing;\n    if (!target) {\n      warnings.push(`Cancel request for \"${summary}\" had no matching calendar event.`);\n      continue;\n    }\n    const applyPayload = {\n      scope: 'calendar',\n      op: 'cancel',\n      event_id: target.event_id,\n      summary: target.summary,\n      start_iso: target.start_iso,\n      end_iso: target.end_iso,\n    };\n    const token = createToken('calendar.cancel', dedupeKey || target.event_id || summary, applyPayload);\n    const action = {\n      scope: 'calendar',\n      op: 'cancel',\n      event_id: target.event_id,\n      summary: target.summary || summary,\n      start_iso: target.start_iso || startIso,\n      end_iso: target.end_iso || null,\n      location: target.location || null,\n      description: target.description || null,\n      dedupe_key: dedupeKey || target.dedupe_key,\n      source_refs: sourceRefs.length ? sourceRefs : target.source_refs,\n      approval_token: token,\n      hmac_payload: buildHmacPayload(token, 'calendar.cancel', dedupeKey || target.dedupe_key, meta.generated_at_iso),\n      admin_summary: `Cancel ${target.summary || summary}`,\n      admin_detail: `Will remove event on ${target.start_iso || startIso}`,\n    };\n    calendarActions.push(action);\n    registerAction(action, applyPayload);\n    continue;\n  }\n\n  if (!startIso) {\n    warnings.push(`Upsert for \"${summary}\" missing start time; skipping.`);\n    continue;\n  }\n\n  const applyPayload = {\n    scope: 'calendar',\n    op: 'upsert',\n    event_id: existing ? existing.event_id : null,\n    summary,\n    start_iso: startIso,\n    end_iso: item.end_iso || (existing ? existing.end_iso : null) || null,\n    location: item.location || (existing ? existing.location : null) || null,\n    description: item.description || (existing ? existing.description : null) || null,\n    audience: item.audience || null,\n    source_refs: sourceRefs.length ? sourceRefs : (existing ? existing.source_refs : null),\n  };\n\n  if (existing) {\n    const noChange = sameValue(existing.summary, summary)\n      && sameValue(existing.start_iso, startIso)\n      && sameValue(existing.end_iso, applyPayload.end_iso)\n      && sameValue(existing.location, applyPayload.location)\n      && sameValue(existing.description, applyPayload.description);\n    if (noChange) {\n      continue;\n    }\n  }\n\n  const token = createToken('calendar.upsert', dedupeKey || summary, applyPayload);\n  const action = {\n    scope: 'calendar',\n    op: 'upsert',\n    event_id: applyPayload.event_id,\n    summary,\n    start_iso: applyPayload.start_iso,\n    end_iso: applyPayload.end_iso,\n    location: applyPayload.location || undefined,\n    description: applyPayload.description || undefined,\n    audience: applyPayload.audience || undefined,\n    dedupe_key: dedupeKey,\n    source_refs: applyPayload.source_refs || undefined,\n    approval_token: token,\n    hmac_payload: buildHmacPayload(token, 'calendar.upsert', dedupeKey, meta.generated_at_iso),\n    diff: existing ? {\n      previous: {\n        summary: existing.summary,\n        start_iso: existing.start_iso,\n        end_iso: existing.end_iso,\n        location: existing.location,\n        description: existing.description,\n      }\n    } : { previous: null },\n    admin_summary: `${existing ? 'Update' : 'Create'} ${summary}`,\n    admin_detail: describeCalendarDiff(existing, applyPayload),\n  };\n  calendarActions.push(action);\n  registerAction(action, applyPayload);\n}\n\nfor (const item of proposedSnackChanges) {\n  const weekKey = item.week_key || slugify(item.week_label || '');\n  if (!weekKey) {\n    warnings.push('Snack change missing week label.');\n    continue;\n  }\n  const existing = snackByKey.get(weekKey) || null;\n  const priorChild = existing ? String(existing.child || '').trim() : '';\n  const newChild = String(item.child || '').trim();\n  const note = item.note || null;\n  const sourceRefs = item.source_refs || [];\n\n  if (!newChild && !priorChild) {\n    continue;\n  }\n  if (newChild && priorChild && newChild.toLowerCase() === priorChild.toLowerCase() && !note) {\n    continue;\n  }\n\n  const op = newChild ? 'assign' : 'clear';\n  const applyPayload = {\n    scope: 'snack',\n    op,\n    week_key: weekKey,\n    week_label: item.week_label,\n    row_index: existing ? existing.row_index : null,\n    prior_child: priorChild || null,\n    new_child: newChild || null,\n    note,\n    source_refs: sourceRefs.length ? sourceRefs : null,\n  };\n  const dedupeKey = `snack|${weekKey}`;\n  const token = createToken(`snack.${op}`, dedupeKey, applyPayload);\n  const action = {\n    scope: 'snack',\n    op,\n    week_key: weekKey,\n    week_label: item.week_label,\n    row_index: applyPayload.row_index,\n    prior_child: priorChild || null,\n    new_child: newChild || null,\n    note,\n    source_refs: sourceRefs.length ? sourceRefs : null,\n    dedupe_key: dedupeKey,\n    approval_token: token,\n    hmac_payload: buildHmacPayload(token, `snack.${op}`, dedupeKey, meta.generated_at_iso),\n    admin_summary: `Snack ${item.week_label || weekKey}`,\n    admin_detail: op === 'assign'\n      ? (priorChild ? `Reassign ${priorChild} → ${newChild}` : `Assign ${newChild}`)\n      : 'Clear assignment',\n  };\n  snackActions.push(action);\n  registerAction(action, applyPayload);\n}\n\nconst allergySummary = {\n  adds: proposedAllergyChanges.filter((row) => (row.action || '').toLowerCase() === 'add'),\n  removes: proposedAllergyChanges.filter((row) => (row.action || '').toLowerCase() === 'remove'),\n};\n\nconst store = $getWorkflowStaticData('global');\nconst previousPending = store.pendingApprovals && typeof store.pendingApprovals === 'object'\n  ? store.pendingApprovals\n  : {};\n\nconst mergedPending = { ...previousPending, ...pendingLookup };\n\n// Trim stale entries older than 30 days to avoid unbounded growth.\nconst cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000);\nfor (const [token, record] of Object.entries(mergedPending)) {\n  const createdAt = record?.created_at ? Date.parse(record.created_at) : Date.now();\n  if (Number.isFinite(createdAt) && createdAt < cutoff && !tokens.has(token)) {\n    delete mergedPending[token];\n  }\n}\n\nstore.pendingApprovals = mergedPending;\nstore.pendingApprovalsUpdatedAtIso = meta.generated_at_iso;\nstore.pendingApprovalsCount = Object.keys(mergedPending).length;\n\nconst preview = {\n  calendar: calendarActions.slice(0, 2).map((action) => ({\n    token: action.approval_token,\n    op: action.op,\n    summary: action.summary,\n    start_iso: action.start_iso,\n  })),\n  snack: snackActions.slice(0, 2).map((action) => ({\n    token: action.approval_token,\n    op: action.op,\n    week: action.week_label,\n    child: action.new_child,\n  })),\n  allergies: {\n    adds: allergySummary.adds.length,\n    removes: allergySummary.removes.length,\n  },\n};\nconsole.log('[Compute Diffs] preview', JSON.stringify(preview, null, 2));\n\nreturn [{\n  json: {\n    meta: {\n      ...meta,\n      diff_generated_at_iso: meta.generated_at_iso,\n      pending_count: tokens.size,\n    },\n    calendar_actions: calendarActions,\n    snack_actions: snackActions,\n    allergy_changes: proposedAllergyChanges,\n    allergy_summary: allergySummary,\n    notices: proposedNotices,\n    admin_rows: adminRows,\n    admin_sheet_rows: adminSheetRows,\n    pending_tokens: Array.from(tokens),\n    debug: {\n      warnings,\n      counts: {\n        current_calendar: currentCalendar.length,\n        proposed_calendar: proposedEvents.length,\n        current_snacks: currentSnacks.length,\n        proposed_snacks: proposedSnackChanges.length,\n      },\n    },\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1132,
+        176
+      ],
+      "id": "cb96bd76-d82d-4b95-9763-40d88adfb573",
+      "name": "Compute Diffs"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_SHEET_ID_PLACEHOLDER",
+          "mode": "list",
+          "cachedResultName": "TRIS Sequioa 2025-26 Snack Week Schedule",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Admin",
+          "mode": "list",
+          "cachedResultName": "Admin",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit#gid=Admin"
+        },
+        "returnAll": true,
+        "options": {
+          "valueRenderMode": "FORMATTED_VALUE"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        416,
+        584
+      ],
+      "id": "a55bf20e-5a7d-4d8a-9b01-c1cc1db7b835",
+      "name": "Admin Queue Snapshot",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "opmsUZ0EOPU1PD9R",
+          "name": "gsheets-rpu"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const columns = ['WhenFound','Type','Summary','Detail','SourceLink','SourceType','ApproveLink','RejectLink','Status','Token','Action','ExpiresAt','ProcessedAt','Actor'];\n\nfunction normalizeRow(row) {\n  const normalized = {};\n  for (const key of columns) {\n    const value = row && Object.prototype.hasOwnProperty.call(row, key) ? row[key] : row && Object.prototype.hasOwnProperty.call(row, key.toLowerCase()) ? row[key.toLowerCase()] : '';\n    normalized[key] = value == null ? '' : String(value).trim();\n  }\n  return normalized;\n}\n\nconst approvalsItems = $items(0) || [];\nconst approvalsJson = approvalsItems.length ? approvalsItems[0].json || {} : {};\nconst signedRows = Array.isArray(approvalsJson.admin_sheet_rows_signed) ? approvalsJson.admin_sheet_rows_signed : [];\n\nconst existingItems = $items(1) || [];\nconst existingMap = new Map();\nfor (let index = 0; index < existingItems.length; index++) {\n  const entry = existingItems[index];\n  if (!entry || typeof entry.json !== 'object') continue;\n  const row = entry.json;\n  const token = String(row.Token || row.token || '').trim();\n  if (!token) continue;\n  existingMap.set(token, { row, index });\n}\n\nconst appendItems = [];\nconst updateItems = [];\n\nfor (const rawRow of signedRows) {\n  const normalized = normalizeRow(rawRow || {});\n  const token = normalized.Token;\n  if (!token) continue;\n  const existing = existingMap.get(token);\n  if (!existing) {\n    appendItems.push({ ...normalized, _action: 'append' });\n    continue;\n  }\n  const prev = normalizeRow(existing.row || {});\n  let changed = false;\n  for (const column of columns) {\n    const prevVal = prev[column];\n    const nextVal = normalized[column];\n    if (prevVal !== nextVal) {\n      changed = true;\n      break;\n    }\n  }\n  if (changed) {\n    updateItems.push({ ...normalized, _action: 'update' });\n  }\n}\n\nif (!appendItems.length && !updateItems.length) {\n  return [[], []];\n}\n\nreturn [\n  appendItems.map((row) => ({ json: row })),\n  updateItems.map((row) => ({ json: row })),\n];",
+        "outputs": 2
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -96,
+        -144
+      ],
+      "id": "866f9f7a-6ac5-4d78-a4dc-4c4c60b8b2a4",
+      "name": "Build Admin Queue Writes",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_SHEET_ID_PLACEHOLDER",
+          "mode": "list",
+          "cachedResultName": "TRIS Sequioa 2025-26 Snack Week Schedule",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Admin",
+          "mode": "list",
+          "cachedResultName": "Admin",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit#gid=Admin"
+        },
+        "options": {
+          "valueInputMode": "USER_ENTERED"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        128,
+        -256
+      ],
+      "id": "f3b4a232-36be-4f0e-9c8a-407c996b9f7a",
+      "name": "Admin Queue Append",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "opmsUZ0EOPU1PD9R",
+          "name": "gsheets-rpu"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_SHEET_ID_PLACEHOLDER",
+          "mode": "list",
+          "cachedResultName": "TRIS Sequioa 2025-26 Snack Week Schedule",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Admin",
+          "mode": "list",
+          "cachedResultName": "Admin",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit#gid=Admin"
+        },
+        "key": "={{$json.Token}}",
+        "keyColumn": "Token",
+        "options": {
+          "valueInputMode": "USER_ENTERED",
+          "useInputData": true
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        128,
+        -32
+      ],
+      "id": "5dd3d0f3-55d1-4f36-91d0-a85ddf3c1764",
+      "name": "Admin Queue Update",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "opmsUZ0EOPU1PD9R",
+          "name": "gsheets-rpu"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const record = $json.pending || $json.record || $json;\nconst apply = record.apply || $json.apply || null;\nconst scope = (apply && apply.scope) || record.scope || $json.scope || null;\nconst outputs=[[],[],[]];\nconst base = { json: { ...$json, scope, apply } };\nif (!apply || !scope) { outputs[2].push(base); return outputs; }\nswitch (String(scope)) {\n  case 'snack':\n    outputs[0].push(base);\n    break;\n  case 'calendar':\n    outputs[1].push(base);\n    break;\n  default:\n    outputs[2].push({ json: { ...$json, scope, apply, warning: `Unsupported scope ${scope}` } });\n}\nreturn outputs;",
+        "outputs": 3
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -128,
+        -560
+      ],
+      "id": "03d4b752-663b-49f9-8cf8-63dc67d1b812",
+      "name": "Route Apply Scope",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const message = $json.warning || 'Unsupported approval scope';\nreturn [{ json: { ...$json, error: message } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        96,
+        -560
+      ],
+      "id": "6c996c4f-5d6f-41bc-8089-9438e8f64b77",
+      "name": "Handle Unsupported Apply",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst token = String($json.token || '').trim();\nif (!token) { throw new Error('Missing approval token for snack apply.'); }\nconst pending = ($json.pending && typeof $json.pending === 'object') ? $json.pending : null;\nconst apply = ($json.apply && typeof $json.apply === 'object') ? $json.apply : (pending && pending.apply) || null;\nif (!apply || apply.scope !== 'snack') { return [[], []]; }\nconst actor = $json.actor || (pending && pending.actor) || '';\nconst processedAt = $json.processedAt || new Date().toISOString();\nconst weekLabel = apply.week_label || apply.week_key || null;\nif (!weekLabel) { throw new Error('Snack apply missing week label.'); }\nconst child = apply.op === 'assign' ? (apply.new_child || '') : '';\nconst note = apply.note || '';\nconst context = { token, actor, processedAt, scope: 'snack', apply };\nreturn [\n  [{ json: { Week: weekLabel, Child: child, Note: note } }],\n  [{ json: context }]\n];\n",
+        "outputs": 2
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        112,
+        -720
+      ],
+      "id": "95e97cd8-624c-4898-8cfa-e064c77bc262",
+      "name": "Prepare Snack Apply",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_SHEET_ID_PLACEHOLDER",
+          "mode": "list",
+          "cachedResultName": "TRIS Sequioa 2025-26 Snack Week Schedule",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Snack Week Schedule",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit#gid=0"
+        },
+        "key": "={{$json[\"Week\"]}}",
+        "keyColumn": "Week",
+        "options": {
+          "useInputData": true,
+          "valueInputMode": "USER_ENTERED"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        336,
+        -816
+      ],
+      "id": "9f0c87d3-9d41-4af8-9ae1-a3e8fcb0fb28",
+      "name": "Apply Snack Update",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "opmsUZ0EOPU1PD9R",
+          "name": "gsheets-rpu"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "append"
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        544,
+        -720
+      ],
+      "id": "6d7cfaaf-0cc5-4a1c-9ae4-b9024a839fcb",
+      "name": "Merge Snack Outcome"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst merged = $json || {};\nconst token = merged.token || (merged.context && merged.context.token) || '';\nif (!token) { throw new Error('Snack finalize missing token'); }\nconst store = $getWorkflowStaticData('global');\nconst pending = store.pendingApprovals && store.pendingApprovals[token];\nconst apply = (merged.apply) || (pending && pending.apply) || {};\nconst actor = merged.actor || (pending && pending.actor) || '';\nconst processedAt = merged.processedAt || new Date().toISOString();\nconst error = merged.error || merged.message || null;\nconst output = {\n  token,\n  scope: 'snack',\n  actor,\n  processedAt,\n  apply,\n  adminRow: pending ? pending.admin_row : null,\n  status: 'success'\n};\nif (error) {\n  output.status = 'error';\n  output.error = typeof error === 'string' ? error : JSON.stringify(error);\n} else if (merged.updatedRows === 0 && merged.updatedRange === undefined) {\n  // treat as success when Sheets returns metadata without updatedRows\n}\nstore.completedTokens = store.completedTokens || {};\nif (output.status === 'success') {\n  store.completedTokens[token] = 'snack';\n}\nreturn [{ json: output }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        -720
+      ],
+      "id": "3e7a1f62-f7b3-4f99-9f90-5b2d4f18e78e",
+      "name": "Finalize Snack Outcome",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst token = String($json.token || '').trim();\nif (!token) { throw new Error('Missing approval token for calendar apply.'); }\nconst pending = ($json.pending && typeof $json.pending === 'object') ? $json.pending : null;\nconst apply = ($json.apply && typeof $json.apply === 'object') ? $json.apply : (pending && pending.apply) || null;\nif (!apply || apply.scope !== 'calendar') { return [[], [], [], []]; }\nconst actor = $json.actor || (pending && pending.actor) || '';\nconst processedAt = $json.processedAt || new Date().toISOString();\nconst calendarId = apply.calendar_id || '7517dd2443c38f31e858f6a544c3e2d9f945811fe970225fb3fe1fe0c180e4e9@group.calendar.google.com';\nconst base = { token, actor, processedAt, scope: 'calendar', apply, calendarId };\nconst outputs = [[], [], [], []];\nif (apply.op === 'cancel') {\n  if (!apply.event_id) {\n    outputs[3].push({ json: { ...base, error: 'Cancel missing event_id' } });\n    return outputs;\n  }\n  outputs[2].push({ json: { token, calendarId, event_id: apply.event_id } });\n} else {\n  const body = {\n    token,\n    calendarId,\n    event_id: apply.event_id || null,\n    summary: apply.summary || '',\n    description: apply.description || '',\n    location: apply.location || '',\n    start_iso: apply.start_iso,\n    end_iso: apply.end_iso || apply.start_iso,\n    reminders: apply.reminders || null,\n    source_refs: apply.source_refs || null\n  };\n  if (!body.start_iso) {\n    outputs[3].push({ json: { ...base, error: 'Calendar apply missing start time' } });\n    return outputs;\n  }\n  if (body.event_id) {\n    outputs[0].push({ json: body });\n  } else {\n    outputs[1].push({ json: body });\n  }\n}\noutputs[3].push({ json: base });\nreturn outputs;\n",
+        "outputs": 4
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        112,
+        -400
+      ],
+      "id": "52f5b197-a711-416a-909d-0966704c8aac",
+      "name": "Prepare Calendar Apply",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "calendar": {
+          "__rl": true,
+          "value": "7517dd2443c38f31e858f6a544c3e2d9f945811fe970225fb3fe1fe0c180e4e9@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "TRIS 2025-26"
+        },
+        "eventId": "={{$json.event_id}}",
+        "start": "={{$json.start_iso}}",
+        "end": "={{$json.end_iso || $json.start_iso}}",
+        "options": {
+          "sendUpdates": "all",
+          "description": "={{$json.description}}",
+          "location": "={{$json.location}}",
+          "timeZone": "America/Los_Angeles"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        336,
+        -480
+      ],
+      "id": "0f3a76d1-dff7-492d-aed0-293557dd6c2f",
+      "name": "Apply Calendar Update",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "y75XdoGS3DwHvZi1",
+          "name": "gcal-rpu"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "calendar": {
+          "__rl": true,
+          "value": "7517dd2443c38f31e858f6a544c3e2d9f945811fe970225fb3fe1fe0c180e4e9@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "TRIS 2025-26"
+        },
+        "summary": "={{$json.summary}}",
+        "start": "={{$json.start_iso}}",
+        "end": "={{$json.end_iso || $json.start_iso}}",
+        "options": {
+          "sendUpdates": "all",
+          "description": "={{$json.description}}",
+          "location": "={{$json.location}}",
+          "timeZone": "America/Los_Angeles"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        336,
+        -352
+      ],
+      "id": "06a3e5f0-92f6-4e51-9b7c-999e2dcfa3ad",
+      "name": "Apply Calendar Create",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "y75XdoGS3DwHvZi1",
+          "name": "gcal-rpu"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "7517dd2443c38f31e858f6a544c3e2d9f945811fe970225fb3fe1fe0c180e4e9@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "TRIS 2025-26"
+        },
+        "eventId": "={{$json.event_id}}",
+        "options": {
+          "sendUpdates": "all"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        336,
+        -224
+      ],
+      "id": "2ab491a4-5cee-4678-845f-7a48f1ae91d5",
+      "name": "Apply Calendar Cancel",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "y75XdoGS3DwHvZi1",
+          "name": "gcal-rpu"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "append",
+        "numberInputs": 4
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        640,
+        -400
+      ],
+      "id": "bfc020d4-979f-4a79-b0fb-45abc7be0d46",
+      "name": "Merge Calendar Outcome"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst data = $json || {};\nconst token = data.token || '';\nif (!token) {\n  throw new Error('Calendar finalize missing token');\n}\nconst store = $getWorkflowStaticData('global');\nconst pending = store.pendingApprovals && store.pendingApprovals[token];\nconst apply = (data.apply) || (pending && pending.apply) || {};\nconst actor = data.actor || (pending && pending.actor) || '';\nconst processedAt = data.processedAt || new Date().toISOString();\nconst error = data.error || data.message || null;\nconst output = {\n  token,\n  scope: 'calendar',\n  actor,\n  processedAt,\n  apply,\n  adminRow: pending ? pending.admin_row : null,\n  status: 'success',\n};\nif (data.operation === 'cancel') {\n  output.cancelled = true;\n}\nif (error) {\n  output.status = 'error';\n  output.error = typeof error === 'string' ? error : JSON.stringify(error);\n}\nstore.completedTokens = store.completedTokens || {};\nif (output.status === 'success') {\n  store.completedTokens[token] = 'calendar';\n}\nreturn [{ json: output }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        -400
+      ],
+      "id": "24707062-47c9-4c0f-9bc7-3b241e89f2ef",
+      "name": "Finalize Calendar Outcome",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst item = $json || {};\nconst token = String(item.token || '').trim();\nif (!token) {\n  throw new Error('Apply result missing token');\n}\nconst store = $getWorkflowStaticData('global');\nconst record = store.pendingApprovals && store.pendingApprovals[token];\nconst apply = item.apply || (record && record.apply) || {};\nconst scope = item.scope || (record && record.scope) || (apply && apply.scope) || 'unknown';\nconst actor = item.actor || (record && record.actor) || 'unknown';\nconst processedAt = item.processedAt || new Date().toISOString();\nconst status = (item.status || 'success').toLowerCase();\nconst error = item.error || null;\nconst adminRow = (item.adminRow && typeof item.adminRow === 'object')\n  ? { ...item.adminRow }\n  : (record && record.admin_row ? { ...record.admin_row } : {});\nlet statusLabel = 'Pending';\nif (status === 'success') statusLabel = 'Approved';\nelse if (status === 'error') statusLabel = 'Error';\nelse if (status === 'rejected') statusLabel = 'Rejected';\nelse statusLabel = status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Pending';\nadminRow.Status = statusLabel;\nadminRow.ProcessedAt = processedAt;\nadminRow.Actor = actor;\nconst sourceRef = (apply && Array.isArray(apply.source_refs) && apply.source_refs.length)\n  ? apply.source_refs[0]\n  : (record && record.source_refs && record.source_refs[0]) || null;\nconst opsLog = {\n  Timestamp: processedAt,\n  Actor: actor,\n  Scope: scope,\n  Action: apply.op || item.operation || scope,\n  TargetKey: apply.week_key || apply.event_id || apply.dedupe_key || token,\n  SourceToken: token,\n  SourceLink: sourceRef ? sourceRef.url || '' : '',\n  DiffJSON: JSON.stringify({ status: statusLabel, scope, apply, error }, null, 2)\n};\nif (status !== 'success' && error) {\n  opsLog.Action = `${opsLog.Action}:error`;\n} else if (status === 'rejected') {\n  opsLog.Action = `${opsLog.Action}:rejected`;\n}\nreturn [{ json: {\n  token,\n  status,\n  scope,\n  actor,\n  processedAt,\n  error,\n  adminRow,\n  opsLog,\n  apply\n} }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        -480
+      ],
+      "id": "fa02cc82-7dd8-4ce4-8f65-12c9a930a356",
+      "name": "Process Apply Result",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst item = $json || {};\nconst adminRow = item.adminRow || {};\nconst token = String(item.token || adminRow.Token || '').trim();\nif (!token) {\n  throw new Error('Admin update missing token');\n}\nconst row = {\n  WhenFound: adminRow.WhenFound || adminRow.when_found_iso || '',\n  Type: adminRow.Type || adminRow.type || '',\n  Summary: adminRow.Summary || adminRow.summary || '',\n  Detail: adminRow.Detail || adminRow.detail || '',\n  SourceLink: adminRow.SourceLink || adminRow.source_url || '',\n  SourceType: adminRow.SourceType || adminRow.source_type || '',\n  ApproveLink: adminRow.ApproveLink || adminRow.approve_link || '',\n  RejectLink: adminRow.RejectLink || adminRow.reject_link || '',\n  Status: adminRow.Status || 'Pending',\n  Token: token,\n  Action: adminRow.Action || (item.apply && item.apply.op ? `${item.scope}.${item.apply.op}` : ''),\n  ExpiresAt: adminRow.ExpiresAt || adminRow.expires_at || '',\n  ProcessedAt: adminRow.ProcessedAt || '',\n  Actor: adminRow.Actor || '',\n};\nreturn [\n  [{ json: row }],\n  [{ json: { ...item, adminRow: row } }]\n];\n",
+        "outputs": 2
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        -480
+      ],
+      "id": "b2788721-0fee-4688-99c9-05bd62db4beb",
+      "name": "Prepare Admin Sheet Update",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_SHEET_ID_PLACEHOLDER",
+          "mode": "list",
+          "cachedResultName": "TRIS Sequioa 2025-26 Snack Week Schedule",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Admin",
+          "mode": "list",
+          "cachedResultName": "Admin",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit#gid=Admin"
+        },
+        "key": "={{$json.Token}}",
+        "keyColumn": "Token",
+        "options": {
+          "useInputData": true,
+          "valueInputMode": "USER_ENTERED"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1472,
+        -560
+      ],
+      "id": "02fee3a3-6f46-4b86-8c44-62f5777520a6",
+      "name": "Admin Queue Mark Processed",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "opmsUZ0EOPU1PD9R",
+          "name": "gsheets-rpu"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst item = $json || {};\nconst ops = item.opsLog || {};\nconst row = {\n  Timestamp: ops.Timestamp || item.processedAt || new Date().toISOString(),\n  Actor: ops.Actor || item.actor || '',\n  Scope: ops.Scope || item.scope || '',\n  Action: ops.Action || (item.apply && item.apply.op) || '',\n  TargetKey: ops.TargetKey || item.apply?.week_key || item.apply?.event_id || item.token,\n  SourceToken: ops.SourceToken || item.token,\n  SourceLink: ops.SourceLink || '',\n  DiffJSON: ops.DiffJSON || JSON.stringify({ apply: item.apply, status: item.status }, null, 2)\n};\nreturn [{ json: row }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1472,
+        -352
+      ],
+      "id": "bc7bfc22-17e5-44e6-8c16-d6804df2e761",
+      "name": "Prepare OpsLog Entry",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_SHEET_ID_PLACEHOLDER",
+          "mode": "list",
+          "cachedResultName": "TRIS Sequioa 2025-26 Snack Week Schedule",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "OpsLog",
+          "mode": "list",
+          "cachedResultName": "OpsLog",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit#gid=OpsLog"
+        },
+        "options": {
+          "valueInputMode": "USER_ENTERED"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1696,
+        -352
+      ],
+      "id": "a8aa8d3e-6a7b-4c9c-bf79-511cf07bba58",
+      "name": "OpsLog Append",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "opmsUZ0EOPU1PD9R",
+          "name": "gsheets-rpu"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst token = String($json.token || '').trim();\nif (!token) { throw new Error('Reject outcome missing token'); }\nconst store = $getWorkflowStaticData('global');\nconst record = store.pendingApprovals && store.pendingApprovals[token];\nconst actor = $json.actor || (record && record.actor) || 'unknown';\nconst processedAt = $json.processedAt || new Date().toISOString();\nconst apply = record && record.apply ? record.apply : null;\nconst adminRow = record && record.admin_row ? { ...record.admin_row } : {};\nreturn [{ json: {\n  token,\n  status: 'rejected',\n  scope: (record && record.scope) || (apply && apply.scope) || 'unknown',\n  actor,\n  processedAt,\n  adminRow,\n  apply,\n  error: `Rejected by ${actor}`\n} }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        808
+      ],
+      "id": "f507db98-1ff3-4b31-8c35-44cd357370c5",
+      "name": "Build Reject Outcome",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst status = ($json.status || '').toLowerCase();\nconst outputs = [[], []];\nif (status === 'success') {\n  outputs[0].push({ json: $json });\n} else {\n  outputs[1].push({ json: $json });\n}\nreturn outputs;\n",
+        "outputs": 2
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1472,
+        -160
+      ],
+      "id": "28f916a1-0a8b-4caf-afde-034ab0a0f568",
+      "name": "Route Apply Status",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst item = $json || {};\nconst store = $getWorkflowStaticData('global');\nstore.messaging = store.messaging || {};\nconst approvals = store.messaging.approved || [];\napprovals.push({\n  token: item.token,\n  scope: item.scope,\n  actor: item.actor,\n  processedAt: item.processedAt,\n  apply: item.apply,\n});\nstore.messaging.approved = approvals.slice(-50);\nstore.messaging.lastApprovedAt = item.processedAt;\nreturn [{ json: item }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1696,
+        -208
+      ],
+      "id": "1ce9443e-10cf-4fc3-89f1-1cec2bc3a266",
+      "name": "Handle Apply Success",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst item = $json || {};\nconst store = $getWorkflowStaticData('global');\nstore.messaging = store.messaging || {};\nconst errors = store.messaging.errors || [];\nerrors.push({ token: item.token, error: item.error, processedAt: item.processedAt, scope: item.scope });\nstore.messaging.errors = errors.slice(-50);\nreturn [{ json: item }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1696,
+        -112
+      ],
+      "id": "ab7027ef-63b7-4b97-9e39-4d58cfa4da64",
+      "name": "Handle Apply Error",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst store = $getWorkflowStaticData('global');\nstore.messaging = store.messaging || {};\nconst approvals = store.messaging.approved || [];\nconst recent = approvals.slice(-10);\nconst payload = {\n  latest: $json.apply || null,\n  approvals: recent,\n  pendingCount: store.pendingApprovalsCount || 0,\n  generated_at: new Date().toISOString(),\n};\nreturn [{ json: { prompt_url: 'https://raw.githubusercontent.com/dshein87/personal-projects/main/projects/Sequoia%20Room%20Parent%20Agent/prompts/formatter_whatsapp.txt', messaging: payload } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        -256
+      ],
+      "id": "b8d1ec03-67ea-4ea5-a1fb-3dbcc8a84dd0",
+      "name": "Build WhatsApp Context",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "responseFormat": "string",
+        "url": "={{$json.prompt_url}}",
+        "options": {
+          "fullResponse": false
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2144,
+        -256
+      ],
+      "id": "dddfa8a7-0dd2-4f3b-9dc8-9e50f0b7a1e2",
+      "name": "Fetch WhatsApp Prompt"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n        const prompt = $json.body || $json.data || $json.prompt || '';\n        const messaging = $json.messaging || ($json.json && $json.json.messaging) || ($items(0)?.[0]?.json?.messaging) || {};\n        const context = messaging || {};\n        const payload = JSON.stringify(context, null, 2);\n        const promptText = `${prompt}\n\nApproved actions data:\n${payload}`;\n        return [{ json: { prompt_text: promptText, messaging: context } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2384,
+        -256
+      ],
+      "id": "3aef6ad7-5e62-4bbb-8ccf-8efefb95c5ee",
+      "name": "Assemble WhatsApp Prompt",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$json.prompt_text}}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        2608,
+        -256
+      ],
+      "id": "5c1bb4c3-d979-42bc-b7fa-297927d0b2ea",
+      "name": "WhatsApp LLM Chain"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst text = $json.text || $json.output || $json.result || '';\nconst store = $getWorkflowStaticData('global');\nstore.messaging = store.messaging || {};\nstore.messaging.whatsappDraft = text;\nstore.messaging.whatsappDraftUpdatedAt = new Date().toISOString();\nreturn [{ json: { draft: text, updatedAt: store.messaging.whatsappDraftUpdatedAt } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2832,
+        -256
+      ],
+      "id": "d5a6429e-815f-4e18-9e3d-8af614150031",
+      "name": "Store WhatsApp Draft",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_SHEET_ID_PLACEHOLDER",
+          "mode": "list",
+          "cachedResultName": "TRIS Sequioa 2025-26 Snack Week Schedule",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Admin",
+          "mode": "list",
+          "cachedResultName": "Admin",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit#gid=Admin"
+        },
+        "key": "WHATSAPP_DRAFT",
+        "keyColumn": "Token",
+        "options": {
+          "useInputData": true,
+          "valueInputMode": "USER_ENTERED"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3056,
+        -256
+      ],
+      "id": "8ed3c3a4-eea2-4abc-a56d-f432dc3d38fa",
+      "name": "Admin WhatsApp Draft Upsert",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "opmsUZ0EOPU1PD9R",
+          "name": "gsheets-rpu"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst draft = $json.draft || '';\nconst updatedAt = $json.updatedAt || new Date().toISOString();\nreturn [{ json: {\n  WhenFound: updatedAt,\n  Type: 'WhatsApp',\n  Summary: 'Latest WhatsApp draft',\n  Detail: draft.slice(0, 200),\n  SourceLink: '',\n  SourceType: '',\n  ApproveLink: '',\n  RejectLink: '',\n  Status: 'Ready',\n  Token: 'WHATSAPP_DRAFT',\n  Action: 'messaging.whatsapp',\n  ExpiresAt: '',\n  ProcessedAt: updatedAt,\n  Actor: 'system'\n} }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3056,
+        -352
+      ],
+      "id": "a2b8c907-2c71-4f88-a11f-0747f9e0b13b",
+      "name": "Prepare WhatsApp Row",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\n        const apply = $json.apply || {};\n        const subject = `Room Parent approval: ${apply.scope || 'item'} ${apply.op || ''}`.trim();\n        const body = `Approved by ${$json.actor} at ${$json.processedAt}\nScope: ${apply.scope}\nAction: ${apply.op}\nDetails: ${JSON.stringify(apply, null, 2)}`;\n        return [{ json: { to: 'ops@example.com', subject, body } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        -176
+      ],
+      "id": "9f5de968-1c6f-4f27-b8ed-5b7e5b45f44e",
+      "name": "Prepare Success Notification",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "to": "={{$json.to}}",
+        "subject": "={{$json.subject}}",
+        "message": "={{$json.body}}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2144,
+        -176
+      ],
+      "id": "0f6c6faa-180b-4f1d-828c-5ab34d3cce5e",
+      "name": "Notify Success Email",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "bmxgWt0gSJhngHjY",
+          "name": "Gmail account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst text = `Room Parent approval FAILED for token ${$json.token}. Error: ${$json.error || 'unknown'}`;\nreturn [{ json: { text } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        -64
+      ],
+      "id": "f3b26605-6a51-4e50-9460-08f636f2f78b",
+      "name": "Prepare Error Notification",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/PLACEHOLDER/PLACEHOLDER/PLACEHOLDER",
+        "sendBody": true,
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={ \"text\": $json.text }"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2144,
+        -64
+      ],
+      "id": "e4f79a49-0fb6-41c5-901f-6229e54224ac",
+      "name": "Notify Error Slack",
+      "continueOnFail": true,
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "responseFormat": "string",
+        "url": "={{$json.prompt_url || \"https://raw.githubusercontent.com/dshein87/personal-projects/main/projects/Sequoia%20Room%20Parent%20Agent/prompts/digest_daily.txt\"}}",
+        "options": {
+          "fullResponse": false
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -128,
+        -32
+      ],
+      "id": "dd2f1914-5f69-4f26-9e8f-4c9fdbfe3073",
+      "name": "Fetch Daily Digest Prompt"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n            const prompt = $json.body || $json.data || '';\n            const context = $json.pending !== undefined ? $json : ($json.context || {});\n            const payload = JSON.stringify({\n              pending: context.pending || [],\n              recentApproved: context.recentApproved || [],\n              whatsappDraft: context.whatsappDraft || '',\n              windowStartIso: context.windowStartIso,\n              windowEndIso: context.windowEndIso,\n              pendingCount: context.pendingCount || 0,\n            }, null, 2);\n            const promptText = `${prompt}\n\nContext JSON:\n${payload}`;\n            return [{ json: { prompt_text: promptText, digestType: 'daily', context } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        104,
+        -32
+      ],
+      "id": "c127b5f9-f713-4f25-9d4f-4ae623e1b8f8",
+      "name": "Assemble Daily Digest Prompt"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$json.prompt_text}}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        328,
+        -32
+      ],
+      "id": "6d642a80-6b88-4388-8c38-77faea6cce9d",
+      "name": "Daily Digest LLM"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $json.text || $json.output || \"\";\nreturn [{ json: { to: \"NOTIFICATION_EMAIL_PLACEHOLDER\", subject: \"Room Parent Daily Digest\", body: text } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        552,
+        -32
+      ],
+      "id": "a158a5e9-8650-4b10-8517-4bd83f5ac4d7",
+      "name": "Prepare Daily Digest Email"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "to": "={{$json.to}}",
+        "subject": "={{$json.subject}}",
+        "message": "={{$json.body}}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        776,
+        -32
+      ],
+      "id": "7f1dd40d-da9f-4b7a-88a2-5133859f3aaa",
+      "name": "Send Daily Digest Email",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "bmxgWt0gSJhngHjY",
+          "name": "Gmail account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "responseFormat": "string",
+        "url": "={{$json.prompt_url || \"https://raw.githubusercontent.com/dshein87/personal-projects/main/projects/Sequoia%20Room%20Parent%20Agent/prompts/digest_weekly.txt\"}}",
+        "options": {
+          "fullResponse": false
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -128,
+        160
+      ],
+      "id": "f4f1daed-c444-4490-9ab4-63bd5d117e7a",
+      "name": "Fetch Weekly Digest Prompt"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n            const prompt = $json.body || $json.data || '';\n            const context = $json.pending !== undefined ? $json : ($json.context || {});\n            const payload = JSON.stringify({\n              pending: context.pending || [],\n              recentApproved: context.recentApproved || [],\n              metrics: context.metrics || {},\n              whatsappDraft: context.whatsappDraft || '',\n              windowStartIso: context.windowStartIso,\n              windowEndIso: context.windowEndIso,\n              pendingCount: context.pendingCount || 0,\n            }, null, 2);\n            const promptText = `${prompt}\n\nContext JSON:\n${payload}`;\n            return [{ json: { prompt_text: promptText, digestType: 'weekly', context } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        104,
+        160
+      ],
+      "id": "c2a5de7d-5a7d-4af5-81c7-044ad13cf5b0",
+      "name": "Assemble Weekly Digest Prompt"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$json.prompt_text}}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        328,
+        160
+      ],
+      "id": "9d7b8f8a-3ac4-4a52-88f4-0fd2171f2cbd",
+      "name": "Weekly Digest LLM"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $json.text || $json.output || \"\";\nreturn [{ json: { to: \"NOTIFICATION_EMAIL_PLACEHOLDER\", subject: \"Room Parent Weekly Digest\", body: text } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        552,
+        160
+      ],
+      "id": "2fc7c83a-2b7d-444a-9c6b-e7dfc4c2aa74",
+      "name": "Prepare Weekly Digest Email"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "to": "={{$json.to}}",
+        "subject": "={{$json.subject}}",
+        "message": "={{$json.body}}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        776,
+        160
+      ],
+      "id": "0cbb6c07-46a7-483f-acf1-8161f4ab2064",
+      "name": "Send Weekly Digest Email",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "bmxgWt0gSJhngHjY",
+          "name": "Gmail account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "append",
+        "numberInputs": 2
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -16,
+        -32
+      ],
+      "id": "1f4b6b29-09be-4d91-8bb8-06ae4a4f469f",
+      "name": "Merge Daily Digest Data"
+    },
+    {
+      "parameters": {
+        "mode": "append",
+        "numberInputs": 2
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -16,
+        160
+      ],
+      "id": "c648e145-b63c-4df8-a8cc-5b16bec6164f",
+      "name": "Merge Weekly Digest Data"
+    }
+  ],
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "WhatsApp LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Daily Digest LLM",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Weekly Digest LLM",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sample Text": {
+      "main": [
+        []
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Combine Extractor Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate JSON": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Snack Week Schedule": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Allergy Rows": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Make Approval Links": {
+      "main": [
+        [
+          {
+            "node": "Build Admin Queue Writes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve": {
+      "main": [
+        [
+          {
+            "node": "Validate HMAC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reject": {
+      "main": [
+        [
+          {
+            "node": "Validate HMAC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Compile Current State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Digest Schedule": {
+      "main": [
+        [
+          {
+            "node": "Daily Digest Prep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Digest Schedule": {
+      "main": [
+        [
+          {
+            "node": "Weekly Digest Prep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Main Poll Schedule": {
+      "main": [
+        [
+          {
+            "node": "In Window?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Setup Approvals Secret": {
+      "main": [
+        [
+          {
+            "node": "Store Approvals Secret",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "In Window?": {
+      "main": [
+        [
+          {
+            "node": "Set Run Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Run Context": {
+      "main": [
+        [
+          {
+            "node": "Allergy Rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Snack Week Schedule",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Calendar Snapshot",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Ingestion Queries",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 5
+          },
+          {
+            "node": "OpsLog Snapshot",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Admin Queue Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Digest Prep": {
+      "main": [
+        [
+          {
+            "node": "Fetch Daily Digest Prompt",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Daily Digest Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Weekly Digest Prep": {
+      "main": [
+        [
+          {
+            "node": "Fetch Weekly Digest Prompt",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Weekly Digest Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Validate HMAC": {
+      "main": [
+        [
+          {
+            "node": "Validate Token - Approve",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Validate Token - Reject",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Search": {
+      "main": [
+        [
+          {
+            "node": "Gmail Message → Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive PDF List": {
+      "main": [
+        [
+          {
+            "node": "Drive Download",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Ingestion Queries": {
+      "main": [
+        [
+          {
+            "node": "Gmail Search",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Drive PDF List",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Extractor Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Message → Text": {
+      "main": [
+        [
+          {
+            "node": "Merge Ingestion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive Download": {
+      "main": [
+        [
+          {
+            "node": "PDF → Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF → Text": {
+      "main": [
+        [
+          {
+            "node": "OCR Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCR Fallback": {
+      "main": [
+        [
+          {
+            "node": "Merge Ingestion",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Ingestion": {
+      "main": [
+        [
+          {
+            "node": "Attach Extractor Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Extractor Prompt": {
+      "main": [
+        [
+          {
+            "node": "Attach Extractor Prompt",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Attach Extractor Prompt": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Pass Ingestion Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pass Ingestion Metadata": {
+      "main": [
+        [
+          {
+            "node": "Combine Extractor Output",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Combine Extractor Output": {
+      "main": [
+        [
+          {
+            "node": "Validate JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendar Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compile Current State": {
+      "main": [
+        [
+          {
+            "node": "Compute Diffs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpsLog Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Compute Diffs": {
+      "main": [
+        [
+          {
+            "node": "Make Approval Links",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Admin Queue Writes": {
+      "main": [
+        [
+          {
+            "node": "Admin Queue Append",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Admin Queue Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Admin Queue Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Build Admin Queue Writes",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Validate Token - Approve": {
+      "main": [
+        [
+          {
+            "node": "Route Apply Scope",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Apply Scope": {
+      "main": [
+        [
+          {
+            "node": "Prepare Snack Apply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Calendar Apply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handle Unsupported Apply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Snack Apply": {
+      "main": [
+        [
+          {
+            "node": "Apply Snack Update",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge Snack Outcome",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Apply Snack Update": {
+      "main": [
+        [
+          {
+            "node": "Merge Snack Outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Snack Outcome": {
+      "main": [
+        [
+          {
+            "node": "Finalize Snack Outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Calendar Apply": {
+      "main": [
+        [
+          {
+            "node": "Apply Calendar Update",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Apply Calendar Create",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Apply Calendar Cancel",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge Calendar Outcome",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Apply Calendar Update": {
+      "main": [
+        [
+          {
+            "node": "Merge Calendar Outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Calendar Create": {
+      "main": [
+        [
+          {
+            "node": "Merge Calendar Outcome",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Apply Calendar Cancel": {
+      "main": [
+        [
+          {
+            "node": "Merge Calendar Outcome",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge Calendar Outcome": {
+      "main": [
+        [
+          {
+            "node": "Finalize Calendar Outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalize Snack Outcome": {
+      "main": [
+        [
+          {
+            "node": "Process Apply Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalize Calendar Outcome": {
+      "main": [
+        [
+          {
+            "node": "Process Apply Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Unsupported Apply": {
+      "main": [
+        []
+      ]
+    },
+    "Process Apply Result": {
+      "main": [
+        [
+          {
+            "node": "Prepare Admin Sheet Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Admin Sheet Update": {
+      "main": [
+        [
+          {
+            "node": "Admin Queue Mark Processed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare OpsLog Entry",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Route Apply Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare OpsLog Entry": {
+      "main": [
+        [
+          {
+            "node": "OpsLog Append",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Token - Reject": {
+      "main": [
+        [
+          {
+            "node": "Build Reject Outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Reject Outcome": {
+      "main": [
+        [
+          {
+            "node": "Process Apply Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Apply Status": {
+      "main": [
+        [
+          {
+            "node": "Handle Apply Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handle Apply Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Apply Success": {
+      "main": [
+        [
+          {
+            "node": "Build WhatsApp Context",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Success Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build WhatsApp Context": {
+      "main": [
+        [
+          {
+            "node": "Fetch WhatsApp Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch WhatsApp Prompt": {
+      "main": [
+        [
+          {
+            "node": "Assemble WhatsApp Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble WhatsApp Prompt": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Store WhatsApp Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store WhatsApp Draft": {
+      "main": [
+        [
+          {
+            "node": "Prepare WhatsApp Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare WhatsApp Row": {
+      "main": [
+        [
+          {
+            "node": "Admin WhatsApp Draft Upsert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Success Notification": {
+      "main": [
+        [
+          {
+            "node": "Notify Success Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Apply Error": {
+      "main": [
+        [
+          {
+            "node": "Prepare Error Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Error Notification": {
+      "main": [
+        [
+          {
+            "node": "Notify Error Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Daily Digest Prompt": {
+      "main": [
+        [
+          {
+            "node": "Merge Daily Digest Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble Daily Digest Prompt": {
+      "main": [
+        [
+          {
+            "node": "Daily Digest LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Digest LLM": {
+      "main": [
+        [
+          {
+            "node": "Prepare Daily Digest Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Daily Digest Email": {
+      "main": [
+        [
+          {
+            "node": "Send Daily Digest Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Weekly Digest Prompt": {
+      "main": [
+        [
+          {
+            "node": "Merge Weekly Digest Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble Weekly Digest Prompt": {
+      "main": [
+        [
+          {
+            "node": "Weekly Digest LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Digest LLM": {
+      "main": [
+        [
+          {
+            "node": "Prepare Weekly Digest Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Weekly Digest Email": {
+      "main": [
+        [
+          {
+            "node": "Send Weekly Digest Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Daily Digest Data": {
+      "main": [
+        [
+          {
+            "node": "Assemble Daily Digest Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Weekly Digest Data": {
+      "main": [
+        [
+          {
+            "node": "Assemble Weekly Digest Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": [],
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
