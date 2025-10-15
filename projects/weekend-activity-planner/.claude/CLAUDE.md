@@ -135,6 +135,73 @@ Multi-agent AI system with WhatsApp bot interface, Spotify integration, and lear
 
 ---
 
+## n8n Integration - CRITICAL GUIDANCE
+
+**📖 ALWAYS READ THIS BEFORE WORKING WITH n8n:**
+
+### ✅ What to Do
+
+**Use n8n REST API directly** - See `building/N8N-APPROACH.md` for complete guide
+
+**Working example (validated 2025-10-15):**
+```bash
+curl -X POST "https://dshein.app.n8n.cloud/api/v1/workflows" \
+  -H "X-N8N-API-KEY: ${N8N_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My Workflow",
+    "nodes": [
+      {
+        "id": "trigger-1",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [250, 300],
+        "parameters": {
+          "rule": {
+            "interval": [{"field": "cronExpression", "expression": "0 12 * * 4"}]
+          }
+        }
+      }
+    ],
+    "connections": {},
+    "settings": {"executionOrder": "v1"}
+  }'
+```
+
+**Key Points:**
+- ✅ Use `scheduleTrigger` for cron schedules (e.g., "Thursday noon")
+- ✅ Every node needs: `id`, `name`, `type`, `position`
+- ✅ Use credentials from `.env` (`N8N_API_KEY`, `N8N_HOST`)
+- ✅ All 400+ n8n nodes are available (not just 8!)
+
+### ❌ What NOT to Do
+
+**DO NOT use `mcp-n8n-builder` MCP server** - It has validation bugs:
+- ❌ Incorrectly reports only 8 available nodes
+- ❌ Rejects valid nodes like `scheduleTrigger`
+- ❌ Says "Not a valid n8n node" when node actually works
+- ✅ Removed from `.mcp.json` on 2025-10-15
+
+**DO NOT include `active` field in POST requests:**
+```json
+{"message":"request/body/active is read-only"}
+```
+
+**DO NOT assume MCPs are always correct** - Always validate against official docs when errors seem wrong.
+
+### 📚 Reference Documentation
+
+**For detailed guidance:**
+- `building/N8N-APPROACH.md` - Complete approach, examples, lessons learned
+- n8n Official API: https://docs.n8n.io/api/
+- Our Instance: https://dshein.app.n8n.cloud
+
+**Credentials Location:**
+- `.env` file: `N8N_API_KEY`, `N8N_HOST`
+
+---
+
 ## Development Commands
 
 ### Building MCP Servers

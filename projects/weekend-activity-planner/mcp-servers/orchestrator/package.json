@@ -9,13 +9,18 @@
     "dev": "tsc --watch",
     "start": "node dist/index.js"
   },
-  "keywords": ["mcp", "orchestrator", "weekend-planner"],
+  "keywords": [
+    "mcp",
+    "orchestrator",
+    "weekend-planner"
+  ],
   "author": "David Shein",
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.5.0",
     "@supabase/supabase-js": "^2.39.0",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "express": "^5.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
