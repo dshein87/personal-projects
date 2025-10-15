@@ -3,80 +3,77 @@
     "name": "Weekend Activity Planner",
     "owner": "David Shein",
     "status": "In Development",
-    "last_updated": "2025-10-14"
+    "last_updated": "2025-10-15"
   },
   "current_state": {
-    "phase": "Phase 1 - Foundation",
-    "phase_number": 1,
-    "completion_percentage": 80,
-    "overall_completion_percentage": 25,
-    "estimated_hours_to_v1": 46
+    "phase": "Phase 3 - Automation & Integration",
+    "phase_number": 3,
+    "completion_percentage": 10,
+    "overall_completion_percentage": 65,
+    "estimated_hours_to_v1": 8
   },
-  "critical_blockers": [
-    {
-      "id": 1,
-      "name": "Bootstrap rating data",
-      "severity": "CRITICAL",
-      "impact": "Blocks Activity Planner scoring algorithm",
-      "affects": ["Activity Planner", "Recommendations", "Weekend suggestions"],
-      "solution": "Run Streamlit UI to rate 30-40 activities",
-      "time_estimate": "45 minutes",
-      "priority": 1,
-      "details": "visits table has 0 records - AI recommendations need rating data to function"
-    }
-  ],
+  "critical_blockers": [],
   "next_tasks": [
     {
       "id": 1,
-      "name": "Bootstrap ratings",
-      "description": "Rate 30-40 activities via Streamlit UI",
-      "time_estimate": "45 minutes",
+      "name": "Restart Claude Code with n8n credentials",
+      "description": "Restart to load N8N_HOST and N8N_API_KEY from .env",
+      "time_estimate": "1 minute",
       "priority": 1,
       "dependencies": [],
-      "blocks": ["Activity Planner implementation"],
+      "blocks": ["n8n workflow creation"],
       "commands": [
-        "cd rating-ui",
-        "source ../.venv/bin/activate",
-        "streamlit run streamlit_app.py"
+        "/exit",
+        "# Reopen Claude Code",
+        "# n8n-builder MCP will auto-load with credentials"
       ]
     },
     {
       "id": 2,
-      "name": "Implement Food Finder MCP Server",
-      "description": "Build 4 tools: find_restaurants, check_dietary_safety, match_restaurant_to_activity, get_restaurant_details",
-      "time_estimate": "3 hours",
+      "name": "Verify n8n MCP connection",
+      "description": "Test connection to n8n Cloud API",
+      "time_estimate": "2 minutes",
       "priority": 2,
-      "dependencies": ["Bootstrap ratings"],
-      "reference_docs": ["building/IMPLEMENTATION-GUIDE.md"],
-      "directory": "mcp-servers/food-finder"
+      "dependencies": ["Restart Claude Code"],
+      "commands": [
+        "mcp__n8n-builder__list_workflows()"
+      ]
     },
     {
       "id": 3,
-      "name": "Implement Activity Planner MCP Server",
-      "description": "Build 5 tools with scoring algorithm using rating data",
-      "time_estimate": "4 hours",
+      "name": "Build Weekly Suggestions workflow",
+      "description": "Create n8n workflow for Thursday noon suggestions",
+      "time_estimate": "2 hours",
       "priority": 3,
-      "dependencies": ["Bootstrap ratings"],
-      "reference_docs": ["building/IMPLEMENTATION-GUIDE.md"],
-      "directory": "mcp-servers/activity-planner"
+      "dependencies": ["Verify n8n MCP connection"],
+      "reference_docs": ["n8n-workflows/README.md", "n8n-workflows/SETUP-GUIDE.md"]
     },
     {
       "id": 4,
-      "name": "Implement Schedule Sync MCP Server",
-      "description": "Weather.gov integration, calendar stub, timing logic",
-      "time_estimate": "3 hours",
+      "name": "Build Feedback Collection workflow",
+      "description": "Create n8n workflow for Monday evening feedback",
+      "time_estimate": "2 hours",
       "priority": 4,
-      "dependencies": ["Food Finder", "Activity Planner"],
-      "directory": "mcp-servers/schedule-sync"
+      "dependencies": ["Weekly Suggestions workflow"],
+      "reference_docs": ["n8n-workflows/README.md"]
     },
     {
       "id": 5,
-      "name": "Implement Orchestrator MCP Server",
-      "description": "Coordinate all subagents, generate 3 weekend suggestions",
-      "time_estimate": "6 hours",
+      "name": "Register WhatsApp Business API",
+      "description": "Meta Cloud API setup with 2-7 day approval wait",
+      "time_estimate": "30 minutes active + 2-7 days wait",
       "priority": 5,
-      "dependencies": ["Food Finder", "Activity Planner", "Schedule Sync"],
-      "directory": "mcp-servers/orchestrator"
+      "dependencies": ["Weekly Suggestions workflow"],
+      "reference_docs": ["n8n-workflows/README.md"]
+    },
+    {
+      "id": 6,
+      "name": "End-to-end testing",
+      "description": "Test complete flow from n8n trigger to WhatsApp delivery",
+      "time_estimate": "1 hour",
+      "priority": 6,
+      "dependencies": ["WhatsApp API approved"],
+      "testing": true
     }
   ],
   "system_health": {
@@ -89,32 +86,53 @@
         "activities": 75,
         "restaurants": 25,
         "venues": 5,
-        "visits": 0
+        "visits": 23
       }
     },
     "mcp_servers": {
-      "status": "skeleton_only",
+      "status": "production_ready",
       "supabase_mcp": "connected_readonly",
+      "n8n_builder_mcp": "configured_awaiting_restart",
       "custom_servers": {
-        "orchestrator": "skeleton",
-        "food_finder": "not_started",
-        "activity_planner": "not_started",
-        "schedule_sync": "not_started"
-      }
+        "orchestrator": "production_ready",
+        "food_finder": "production_ready",
+        "activity_planner": "production_ready",
+        "schedule_sync": "production_ready"
+      },
+      "integration_test": "passed",
+      "total_lines_code": 4002
+    },
+    "infrastructure": {
+      "mcp_http_wrapper": "built_ready",
+      "n8n_credentials": "configured_in_env",
+      "weather_api": "live_weather_gov",
+      "whatsapp_api": "not_registered_yet"
     }
   },
   "recent_decisions": [
     {
-      "date": "2025-10-14",
-      "decision": "Implement layered context architecture (JSON + Markdown)",
-      "rationale": "Claude Code needs machine-readable state (JSON) for fast parsing (~500 tokens) vs full strategic plan (7,000 tokens)",
-      "impact": "90% reduction in session startup tokens (10,000 → 1,000), faster context loading, maintains human readability"
+      "date": "2025-10-15",
+      "decision": "Always update .env files directly via Claude Code",
+      "rationale": "User preference - never ask user to manually edit .env, always do it programmatically with security validation",
+      "impact": "Faster workflow, fewer errors, documented in global memory"
+    },
+    {
+      "date": "2025-10-15",
+      "decision": "Use n8n Cloud (https://dshein.app.n8n.cloud)",
+      "rationale": "User already has n8n Cloud account, faster than local setup, $20/month acceptable",
+      "impact": "Immediate start on workflow creation via mcp-n8n-builder"
     },
     {
       "date": "2025-10-14",
-      "decision": "Use permanent filenames for living documents",
-      "rationale": "STRATEGIC-PLAN.md vs STRATEGIC-PLAN-2025-10-14.md - living documents evolve, date-stamping implies snapshots",
-      "impact": "Easier to reference in /commands, clear which files update vs archive"
+      "decision": "Parallel MCP server build strategy",
+      "rationale": "Activity Planner + Schedule Sync have no dependencies, can build simultaneously",
+      "impact": "Saved ~3 hours (8 hours wall clock vs 13 hours sequential)"
+    },
+    {
+      "date": "2025-10-14",
+      "decision": "Implement layered context architecture (JSON + Markdown)",
+      "rationale": "Claude Code needs machine-readable state (JSON) for fast parsing (~500 tokens) vs full strategic plan (7,000 tokens)",
+      "impact": "90% reduction in session startup tokens (10,000 → 1,000), faster context loading"
     },
     {
       "date": "2025-10-14",
@@ -126,13 +144,7 @@
       "date": "2025-10-14",
       "decision": "Use Weather.gov instead of OpenWeatherMap",
       "rationale": "FREE, no API key required, better Bay Area coverage",
-      "impact": "Simpler setup, $0/month savings"
-    },
-    {
-      "date": "2025-10-14",
-      "decision": "Use n8n Cloud vs self-hosted",
-      "rationale": "Faster setup (15min vs 3hrs), $20/month within budget",
-      "impact": "Can launch v1 faster"
+      "impact": "Simpler setup, $0/month savings, working in production"
     }
   ],
   "documentation": {
@@ -142,35 +154,49 @@
     "progress_tracker": "building/PROGRESS.md",
     "implementation_guide": "building/IMPLEMENTATION-GUIDE.md",
     "api_reference": "building/API-REFERENCE.md",
+    "n8n_readme": "n8n-workflows/README.md",
+    "n8n_setup_guide": "n8n-workflows/SETUP-GUIDE.md",
     "session_logs": "building/session-logs/",
-    "latest_session": "building/session-logs/2025-10-14-context-optimization-and-layered-architecture.md"
+    "latest_session": "building/session-logs/2025-10-15-n8n-credentials-and-session-continuity.md"
   },
   "timeline": {
-    "v1_launch_estimate": "3-4 weeks",
-    "total_hours_remaining": 46,
-    "week_1": {
-      "focus": "MCP server implementation",
-      "hours": 19,
-      "deliverable": "Working CLI weekend suggestions"
-    },
-    "week_2": {
-      "focus": "API integration and automation",
-      "hours": 15,
-      "deliverable": "Automated weekly suggestions"
-    },
-    "week_3": {
-      "focus": "WhatsApp integration and launch",
-      "hours": 12,
-      "deliverable": "Wife receives suggestions via WhatsApp"
+    "v1_launch_estimate": "1 week (pending WhatsApp approval)",
+    "total_hours_remaining": 8,
+    "phase_3": {
+      "focus": "n8n workflows + WhatsApp integration",
+      "hours": 8,
+      "deliverable": "Automated weekly suggestions via WhatsApp",
+      "waiting_on": "WhatsApp Business API approval (2-7 days)"
     }
   },
   "success_criteria_v1": [
     "Wife can send 'What should we do Saturday?' via WhatsApp",
     "Bot responds with 3 weekend suggestions within 30 seconds",
-    "Suggestions include: activities + restaurants + timing",
+    "Suggestions include: activities + restaurants + timing + weather",
     "All restaurants are dietary-safe (celiac + allergens)",
     "Suggestions are realistic (drive times, age-appropriate)",
     "Weekly automated suggestions arrive Thursday noon",
     "Wife uses it 2+ weekends without prompting"
-  ]
+  ],
+  "completed_phases": {
+    "phase_1": {
+      "name": "Foundation",
+      "completion": "100%",
+      "highlights": [
+        "Database: 75 activities, 25 restaurants, 23 visits",
+        "Documentation: 14 comprehensive docs",
+        "Binary ratings system implemented"
+      ]
+    },
+    "phase_2": {
+      "name": "MCP Servers",
+      "completion": "100%",
+      "highlights": [
+        "4 production-ready servers (4,002 lines TypeScript)",
+        "Integration test passing",
+        "Weather.gov live API working",
+        "MCP HTTP wrapper (15 endpoints)"
+      ]
+    }
+  }
 }
