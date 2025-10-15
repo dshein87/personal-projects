@@ -1,0 +1,201 @@
+{
+  "name": "Weekly Activity Suggestions",
+  "nodes": [
+    {
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 12 * * 4"
+            }
+          ]
+        },
+        "timezone": "America/Los_Angeles"
+      }
+    },
+    {
+      "id": "query-activities",
+      "name": "Query Activities",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const { createClient } = require('@supabase/supabase-js');\n\nconst supabase = createClient(\n  process.env.SUPABASE_URL,\n  process.env.SUPABASE_SERVICE_ROLE_KEY\n);\n\nconst { data: activities, error } = await supabase\n  .from('activities')\n  .select(`\n    id, name, description, city, address,\n    drive_time_minutes, indoor_outdoor, category,\n    age_min, age_max, weather_dependent,\n    avg_rating, times_visited, last_visited_at,\n    opening_hours, cost_estimate, url, tags\n  `)\n  .lte('age_min', 3)\n  .gte('age_max', 5)\n  .order('name', { ascending: true });\n\nif (error) throw new Error(`Supabase: ${error.message}`);\n\nreturn activities.map(activity => ({ json: activity }));"
+      }
+    },
+    {
+      "id": "query-visit-history",
+      "name": "Query Visit History",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const { createClient } = require('@supabase/supabase-js');\n\nconst supabase = createClient(\n  process.env.SUPABASE_URL,\n  process.env.SUPABASE_SERVICE_ROLE_KEY\n);\n\nconst { data: visits, error } = await supabase\n  .from('visits')\n  .select(`activity_id, visited_at, rating_overall, rating_3yo, rating_5yo, notes`)\n  .order('visited_at', { ascending: false });\n\nif (error) throw new Error(`Supabase: ${error.message}`);\n\nconst visitMap = {};\nvisits.forEach(visit => {\n  if (!visitMap[visit.activity_id]) {\n    visitMap[visit.activity_id] = {\n      lastVisit: visit.visited_at,\n      ratings: [],\n      visitCount: 0\n    };\n  }\n  visitMap[visit.activity_id].visitCount++;\n  if (visit.rating_overall) {\n    visitMap[visit.activity_id].ratings.push({\n      overall: visit.rating_overall,\n      rating_3yo: visit.rating_3yo,\n      rating_5yo: visit.rating_5yo\n    });\n  }\n});\n\nreturn [{ json: { visitMap } }];"
+      }
+    },
+    {
+      "id": "query-restaurants",
+      "name": "Query Restaurants",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const { createClient } = require('@supabase/supabase-js');\n\nconst supabase = createClient(\n  process.env.SUPABASE_URL,\n  process.env.SUPABASE_SERVICE_ROLE_KEY\n);\n\nconst { data: restaurants, error } = await supabase\n  .from('restaurants')\n  .select(`\n    id, name, cuisine, city, address, drive_time_minutes,\n    celiac_safe, sesame_free_options, cashew_free_options, flax_free_options,\n    avg_rating, price_range, url, phone, celiac_notes, allergen_notes\n  `)\n  .eq('celiac_safe', true)\n  .eq('sesame_free_options', true)\n  .eq('cashew_free_options', true)\n  .eq('flax_free_options', true)\n  .order('avg_rating', { ascending: false, nullsFirst: false });\n\nif (error) throw new Error(`Supabase: ${error.message}`);\n\nreturn restaurants.map(restaurant => ({ json: restaurant }));"
+      }
+    },
+    {
+      "id": "score-activities",
+      "name": "Score Activities",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 300],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const activities = $input.first().json;\nconst visitData = $input.all()[1].json;\nconst visitMap = visitData.visitMap;\nconst now = new Date();\n\nconst scoredActivities = activities.map(activity => {\n  const avgRating = activity.avg_rating || 3.0;\n  const ratingScore = (avgRating / 5.0) * 0.4;\n\n  const driveTime = activity.drive_time_minutes || 30;\n  let driveScore;\n  if (driveTime <= 30) {\n    driveScore = ((30 - driveTime) / 30) * 0.2;\n  } else {\n    driveScore = Math.exp(-(driveTime - 30) / 20) * 0.2;\n  }\n\n  let noveltyScore = 0.3;\n  const visitInfo = visitMap[activity.id];\n  if (visitInfo && visitInfo.lastVisit) {\n    const lastVisit = new Date(visitInfo.lastVisit);\n    const daysSince = (now - lastVisit) / (1000 * 60 * 60 * 24);\n    noveltyScore = Math.min(daysSince / 30, 1.0) * 0.3;\n  }\n\n  const ageMatch = (activity.age_min <= 3 && activity.age_max >= 5);\n  const ageScore = ageMatch ? 0.05 : 0;\n\n  const weatherScore = activity.indoor_outdoor === 'outdoor' ? 0.05 :\n                       activity.indoor_outdoor === 'both' ? 0.035 : 0.025;\n\n  const totalScore = ratingScore + driveScore + noveltyScore + ageScore + weatherScore;\n\n  return {\n    ...activity,\n    score: totalScore,\n    scoreBreakdown: {\n      rating: ratingScore,\n      driveTime: driveScore,\n      novelty: noveltyScore,\n      ageMatch: ageScore,\n      weather: weatherScore\n    },\n    daysSinceLastVisit: visitInfo ? \n      Math.floor((now - new Date(visitInfo.lastVisit)) / (1000 * 60 * 60 * 24)) : \n      999\n  };\n});\n\nreturn scoredActivities.map(activity => ({ json: activity }));"
+      }
+    },
+    {
+      "id": "select-top-3",
+      "name": "Select Top 3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 300],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const scoredActivities = $input.all();\nconst sorted = scoredActivities.map(item => item.json).sort((a, b) => b.score - a.score);\n\nconst selected = [];\nconst seenCategories = new Set();\nconst seenCities = new Set();\n\nfor (const activity of sorted) {\n  if (selected.length >= 3) break;\n  \n  const categoryWeight = seenCategories.has(activity.category) ? 0.95 : 1.0;\n  const cityWeight = seenCities.has(activity.city) ? 0.97 : 1.0;\n  const adjustedScore = activity.score * categoryWeight * cityWeight;\n  \n  selected.push({\n    ...activity,\n    adjustedScore,\n    rank: selected.length + 1\n  });\n  \n  seenCategories.add(activity.category);\n  seenCities.add(activity.city);\n}\n\nreturn selected.map(activity => ({ json: activity }));"
+      }
+    },
+    {
+      "id": "match-restaurants",
+      "name": "Match Restaurants",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 300],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const topActivities = $input.all()[0].json;\nconst restaurantsInput = $input.all()[1];\nconst restaurants = Array.isArray(restaurantsInput) ? restaurantsInput.map(r => r.json) : [restaurantsInput.json];\n\nconst activitiesWithRestaurants = topActivities.map(activity => {\n  const matchedRestaurants = restaurants\n    .filter(restaurant => {\n      if (restaurant.city === activity.city) return true;\n      const detourTime = Math.abs(restaurant.drive_time_minutes - activity.drive_time_minutes);\n      return detourTime <= 15;\n    })\n    .sort((a, b) => {\n      const aCityMatch = a.city === activity.city ? 1 : 0;\n      const bCityMatch = b.city === activity.city ? 1 : 0;\n      if (aCityMatch !== bCityMatch) return bCityMatch - aCityMatch;\n      return (b.avg_rating || 3.0) - (a.avg_rating || 3.0);\n    })\n    .slice(0, 2);\n  \n  return { ...activity, restaurants: matchedRestaurants };\n});\n\nreturn activitiesWithRestaurants.map(activity => ({ json: activity }));"
+      }
+    },
+    {
+      "id": "format-message",
+      "name": "Format Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1650, 300],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const activities = $input.all().map(item => item.json);\n\nlet message = '🎉 *Weekend Activity Suggestions* 🎉\\n\\n';\nmessage += 'Here are your top 3 activities for this weekend:\\n\\n';\n\nactivities.forEach((activity, index) => {\n  message += `${index + 1}. *${activity.name}* (${activity.city})\\n`;\n  message += `   📍 ${activity.drive_time_minutes} min drive`;\n  if (activity.avg_rating) {\n    message += ` | ⭐ ${activity.avg_rating.toFixed(1)}/5`;\n  }\n  message += '\\n';\n  \n  if (activity.description) {\n    message += `   ${activity.description}\\n`;\n  }\n  \n  if (activity.daysSinceLastVisit < 999) {\n    message += `   🕐 Last visited ${activity.daysSinceLastVisit} days ago\\n`;\n  } else {\n    message += `   ✨ *New activity - never tried!*\\n`;\n  }\n  \n  if (activity.opening_hours && activity.opening_hours.saturday) {\n    message += `   🕒 Hours: ${activity.opening_hours.saturday.open} - ${activity.opening_hours.saturday.close}\\n`;\n  }\n  \n  if (activity.cost_estimate) {\n    message += `   💰 ${activity.cost_estimate}\\n`;\n  }\n  \n  if (activity.restaurants && activity.restaurants.length > 0) {\n    message += `   🍽️ *Nearby Dining:*\\n`;\n    activity.restaurants.forEach(restaurant => {\n      message += `      • ${restaurant.name} (${restaurant.cuisine})`;\n      if (restaurant.avg_rating) {\n        message += ` - ${restaurant.avg_rating.toFixed(1)}⭐`;\n      }\n      message += '\\n';\n    });\n  }\n  \n  if (activity.url) {\n    message += `   🔗 ${activity.url}\\n`;\n  }\n  \n  message += '\\n';\n});\n\nmessage += 'Have a great weekend! 🌟\\n\\n';\nmessage += '_Reply with feedback to help improve future suggestions._';\n\nreturn [{ \n  json: { \n    message,\n    activities: activities.map(a => ({\n      id: a.id,\n      name: a.name,\n      score: a.score\n    }))\n  } \n}];"
+      }
+    },
+    {
+      "id": "output-placeholder",
+      "name": "Output Placeholder",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1850, 300],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Query Activities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Activities": {
+      "main": [
+        [
+          {
+            "node": "Query Visit History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Visit History": {
+      "main": [
+        [
+          {
+            "node": "Query Restaurants",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Restaurants": {
+      "main": [
+        [
+          {
+            "node": "Score Activities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Activities": {
+      "main": [
+        [
+          {
+            "node": "Select Top 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Top 3": {
+      "main": [
+        [
+          {
+            "node": "Match Restaurants",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match Restaurants": {
+      "main": [
+        [
+          {
+            "node": "Format Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Message": {
+      "main": [
+        [
+          {
+            "node": "Output Placeholder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
