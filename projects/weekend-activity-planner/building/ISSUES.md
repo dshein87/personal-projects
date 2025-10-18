@@ -117,3 +117,50 @@ Based on the architecture, here are potential issues to monitor:
 ---
 
 *Document issues as they arise during development.*
+
+### Issue #3: n8n Match Restaurants - inputs[1] Undefined
+**Date:** 2025-10-18
+**Component:** n8n workflow (Match Restaurants node)
+**Problem:** Match Restaurants node expected two inputs but `inputs[1]` was undefined, causing error: `Cannot read properties of undefined (reading 'json')`
+**Root Cause:** n8n execution model limitation - "split and rejoin" connection patterns don't preserve data correctly during workflow execution. Connection existed in API/UI but data didn't flow.
+**Impact:** Workflow failed at Match Restaurants node during E2E testing
+**Solution:** Implemented defensive fallback pattern - node tries to use `inputs[1]` from connection, but fetches restaurants directly from Supabase if undefined:
+```javascript
+let restaurants = [];
+if (inputs[1] !== undefined) {
+  restaurants = inputs[1].json; // Use connection
+} else {
+  // Fallback: fetch directly
+  restaurants = await this.helpers.httpRequest({...});
+}
+```
+**Reference:** n8n workflow wRRp1fTwNzOHr9rY, Match Restaurants node
+**Lesson:** Make n8n nodes self-sufficient rather than relying on complex connection patterns. n8n executes as linear chain, not true DAG.
+**Status:** RESOLVED
+
+---
+
+### Issue #4: n8n Code Node - fetch() is not defined
+**Date:** 2025-10-18
+**Component:** n8n workflow (Match Restaurants node)
+**Problem:** After implementing defensive fallback using browser `fetch()` API, got error: `fetch is not defined [line 23]`
+**Root Cause:** n8n Code nodes run in restricted Node.js environment without browser globals (`fetch`, `window`, `document`)
+**Impact:** Defensive fallback failed to execute
+**Solution:** Replaced browser `fetch()` with n8n's built-in HTTP helper:
+```javascript
+// ❌ Don't use (browser API)
+const response = await fetch(url, {headers: {...}});
+
+// ✅ Do use (n8n helper)
+const data = await this.helpers.httpRequest({
+  method: 'GET',
+  url: url,
+  headers: {...}
+});
+```
+**Reference:** n8n workflow wRRp1fTwNzOHr9rY, Match Restaurants node
+**Lesson:** Always use `this.helpers.httpRequest()` or `this.helpers.request()` for HTTP calls in n8n Code nodes, never `fetch()` or external libraries unless pre-installed.
+**Status:** RESOLVED
+
+---
+
