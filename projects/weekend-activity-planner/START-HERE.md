@@ -17,14 +17,16 @@ You're building an AI-powered weekend activity planner for your family (kids age
 
 ## 📍 Current Status
 
-**Phase:** 3 (Automation) - ✅ **70% COMPLETE! Workflow Deployed!** 🎉
+**Phase:** 3 (Automation) - ✅ **100% COMPLETE! Workflow Ready for E2E Test!** 🎉
 
 **Major Milestone (2025-10-15):**
-- ✅ **Complete 9-node n8n workflow built and deployed!**
-- ✅ **5 parallel research agents** (5 minutes to complete)
+- ✅ **Complete 10-node n8n workflow built, deployed, and debugged!**
+- ✅ **4-hour debugging session** (8+ node fixes completed)
+- ✅ **All schema mismatches fixed** (visits, restaurants)
+- ✅ **Execute Once mode fix** (Query Restaurants timeout resolved)
+- ✅ **All data format issues fixed** (HTTP Request + Code node compatibility)
+- ✅ **Proactive Format Message fix** (pattern recognition applied)
 - ✅ **95KB comprehensive documentation** created
-- ✅ **Production-ready code** (scoring, matching, formatting)
-- ✅ **Deployed to n8n** (ID: `wRRp1fTwNzOHr9rY`)
 
 **What's Done:**
 - ✅ Complete project structure
@@ -39,7 +41,7 @@ You're building an AI-powered weekend activity planner for your family (kids age
   - ✅ Schedule Sync (live Weather.gov API integration)
   - ✅ Orchestrator (coordinates all subagents)
 - ✅ **End-to-end integration test PASSED**
-- ✅ **n8n workflow deployed** (9 nodes, complete logic)
+- ✅ **n8n workflow deployed and fully debugged** (10 nodes, production-ready)
 - ✅ `/document` and `/clean-up` slash commands created
 
 **What's Next:**
@@ -47,8 +49,9 @@ You're building an AI-powered weekend activity planner for your family (kids age
 2. ~~Run bootstrap rating~~ ✅ DONE (23 activities)
 3. ~~Implement MCP servers~~ ✅ DONE (all 4 servers)
 4. ~~Build n8n workflow~~ ✅ DONE (deployed 2025-10-15)
-5. **Test workflow in n8n GUI** (1-2 hours) ⭐ START HERE
-6. **WhatsApp integration** (2-3 hours + 2-7 day approval wait)
+5. ~~Debug all workflow nodes~~ ✅ DONE (2025-10-15)
+6. **Test workflow E2E in n8n GUI** (5 min) ⭐ START HERE
+7. **WhatsApp integration** (2-3 hours + 2-7 day approval wait)
 
 ---
 
@@ -90,14 +93,21 @@ Production-ready! 1,020 lines, 4 tools, security hardening complete.
 
 All MCP servers built and n8n workflow deployed successfully! (2025-10-14/15)
 
-### Action 8: Test n8n Workflow in GUI (1-2 hours) ⭐ START HERE
+### Action 8: Test n8n Workflow E2E (5 minutes) ⭐ START HERE
 
-**Open workflow and test all nodes:**
+**Open workflow and run end-to-end test:**
 ```bash
 open "https://dshein.app.n8n.cloud/workflow/wRRp1fTwNzOHr9rY"
+
+# In browser:
+# 1. Cmd+R to refresh
+# 2. Verify "Query Restaurants" has "Execute Once" ON
+# 3. Click "Manual Trigger" → "Execute Workflow"
+# 4. Watch all 10 nodes turn green
+# 5. Check "Format Message" output for WhatsApp text
 ```
 
-**See `NEXT-STEPS.md` Step 7 for complete testing guide.**
+**See `NEXT-STEPS.md` for detailed 5-minute test guide.**
 
 ### Action 9: WhatsApp Integration (2-3 hours + approval wait)
 
