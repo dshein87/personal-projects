@@ -1,43 +1,43 @@
 # Weekend Activity Planner - Next Steps
 
-**Current Status:** Phase 3 Automation - 100% Complete (All nodes debugged! 🎉)
-**Last Updated:** 2025-10-15 (Post-Workflow Debugging)
-**Latest Session:** `building/session-logs/2025-10-15-format-message-proactive-fix.md`
+**Current Status:** Phase 3 Automation - 100% Complete (E2E Test PASSED! 🎉)
+**Last Updated:** 2025-10-18 (Post-E2E Testing & Match Restaurants Fix)
+**Latest Session:** `building/session-logs/2025-10-18-n8n-workflow-match-restaurants-fix.md`
 
 ---
 
-## 🎉 Major Milestone: n8n Workflow Complete!
+## 🎉 Major Milestone: E2E Test PASSED!
 
-**What we accomplished (2025-10-15 full day):**
-- ✅ Complete 10-node workflow designed and deployed
-- ✅ 4-hour debugging session (8+ node fixes)
-- ✅ Schema fixes (visits boolean ratings, restaurants URL fields)
-- ✅ Execute Once mode fix (Query Restaurants timeout resolved)
-- ✅ Data format fixes (all Code nodes handle HTTP Request arrays)
-- ✅ Proactive Format Message fix (pattern recognition applied)
-- ✅ 95KB comprehensive documentation created
+**What we accomplished (2025-10-18 session):**
+- ✅ Complete end-to-end workflow execution successful!
+- ✅ Fixed Match Restaurants `inputs[1]` undefined issue
+- ✅ Implemented defensive fallback using `this.helpers.httpRequest()`
+- ✅ Discovered n8n execution model limitation (split-rejoin patterns don't work)
+- ✅ Validated scoring algorithm (0.71/1.0 for top activity)
+- ✅ Confirmed WhatsApp message formatting perfect
+- ✅ All 10 nodes executing in ~4-5 seconds
 
-**Workflow Details:**
+**Workflow Status:**
 - **ID:** `wRRp1fTwNzOHr9rY`
-- **Nodes:** 10 (Manual Trigger → 4 HTTP queries → 3 algorithms → 1 formatter → Output)
-- **Size:** 11KB JSON payload
-- **Status:** Deployed, fully debugged, ready for E2E test
+- **Test Result:** ✅ ALL 10 NODES SUCCEEDED
+- **Top Activity:** Tacos Oscar (Oakland, 8 min, score 0.716)
+- **Restaurant Matching:** Working (2 matched per activity)
+- **Ready for:** WhatsApp Cloud API integration
 
 **What this means:**
-- Backend logic is 100% complete
-- All 10 nodes fixed and deployed
-- Scoring/selection/matching algorithms production-ready
-- Just needs final E2E test + WhatsApp hookup to go live
+- The recommendation engine works end-to-end!
+- Scoring algorithm validated with real data
+- Only remaining step: Connect to WhatsApp for delivery
 
 ---
 
 ## 🚀 IMMEDIATE NEXT STEP (Start Here!)
 
-### Test Complete Workflow End-to-End ⭐
+### WhatsApp Cloud API Integration ⭐
 
-**Time:** 5 minutes
-**Priority:** HIGH
-**Status:** Ready to test now
+**Time:** 2-3 hours active + 2-7 day Meta approval wait
+**Priority:** HIGH - Final step to go live!
+**Status:** Workflow tested and ready
 
 **Prerequisites:**
 - n8n browser tab open: https://dshein.app.n8n.cloud/workflow/wRRp1fTwNzOHr9rY
