@@ -1,8 +1,18 @@
 # Weekend Activity Planner - Next Steps
 
 **Current Status:** Phase 3 Automation - 100% Complete (E2E Test PASSED! 🎉)
-**Last Updated:** 2025-10-18 (Post-E2E Testing & Match Restaurants Fix)
-**Latest Session:** `building/session-logs/2025-10-18-n8n-workflow-match-restaurants-fix.md`
+**Last Updated:** 2025-10-18 (WhatsApp Integration Started - Blocked by Meta Rate Limit)
+**Latest Session:** `building/session-logs/2025-10-18-whatsapp-integration-started.md`
+
+---
+
+## ⚠️ CURRENT BLOCKER: Meta Rate Limit
+
+**Issue:** Hit Meta Developer portal rate limit when attempting WhatsApp Cloud API setup
+**Impact:** Cannot proceed with final WhatsApp integration step
+**Timeline:** Rate limit should clear within 24 hours (by 2025-10-19)
+**Action:** Check https://developers.facebook.com/ periodically - when accessible, follow steps below
+**Reference:** See Issue #3 in `building/ISSUES.md`
 
 ---
 

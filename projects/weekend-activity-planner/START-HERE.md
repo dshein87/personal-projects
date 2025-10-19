@@ -101,25 +101,21 @@ All MCP servers built and n8n workflow deployed successfully! (2025-10-14/15)
 
 **Result:** All 10 nodes executed successfully! Top activity scored 0.71/1.0.
 
-### Action 9: WhatsApp Cloud API Integration ⭐ START HERE
+### Action 9: WhatsApp Cloud API Integration ⏸️ STARTED (BLOCKED)
 
-**Set up WhatsApp to receive weekly suggestions:**
+**⚠️ BLOCKER (2025-10-18):** Hit Meta Developer portal rate limit
+**Status:** Waiting for rate limit to clear (should be < 24 hours)
+**When cleared:** Follow detailed setup in `NEXT-STEPS.md`
+
+**Quick check if rate limit cleared:**
 ```bash
 open "https://developers.facebook.com/"
-
-# In browser:
-# 1. Cmd+R to refresh
-# 2. Verify "Query Restaurants" has "Execute Once" ON
-# 3. Click "Manual Trigger" → "Execute Workflow"
-# 4. Watch all 10 nodes turn green
-# 5. Check "Format Message" output for WhatsApp text
+# If page loads → rate limit cleared, proceed with setup
+# If blocked → wait and try tomorrow
 ```
 
-**See `NEXT-STEPS.md` for detailed 5-minute test guide.**
-
-### Action 9: WhatsApp Integration (2-3 hours + approval wait)
-
-After workflow testing succeeds, integrate WhatsApp Cloud API.
+**Time to complete (when unblocked):** 2-3 hours + 2-7 day Meta approval wait
+**Reference:** `building/session-logs/2025-10-18-whatsapp-integration-started.md`
 
 ---
 

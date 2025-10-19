@@ -102,11 +102,14 @@
 
 ### Status: 🟢 100% Complete (Workflow ready for testing!)
 
-### 3.1 WhatsApp Cloud API Setup
-- [ ] Register for Meta API (2-7 day wait)
+### 3.1 WhatsApp Cloud API Setup ⏸️ STARTED (Blocked by Meta rate limit - 2025-10-18)
+- [~] Register for Meta API (2-7 day wait) - **BLOCKED: Hit Meta rate limit, waiting to clear**
 - [ ] Complete business verification
 - [ ] Configure webhook
 - [ ] Test messaging
+- **Status:** Started 2025-10-18, blocked by Meta Developer portal rate limit
+- **Action:** Resume when rate limit clears (check: https://developers.facebook.com/)
+- **Reference:** `building/session-logs/2025-10-18-whatsapp-integration-started.md`
 
 ### 3.2 Spotify OAuth Flow ⏸️ DEFERRED (Music Scout in v2)
 - [~] Moved to v2 with Music Scout MCP
@@ -152,7 +155,8 @@
 - [x] Fix Execute Once mode timeout issue
 - [x] Fix data format handling (all Code nodes)
 - [x] Proactive Format Message fix (pattern recognition)
-- [ ] End-to-end test (ready to run)
+- [x] **End-to-end test PASSED!** (2025-10-18 - All 10 nodes succeeded, top score 0.71)
+- [x] **Match Restaurants defensive fallback** (workaround for n8n execution model)
 
 **Phase 3 Progress:** 🔵🔵🔵🔵🔵🔵🔵🔵🔵🔵 100% ✅
 

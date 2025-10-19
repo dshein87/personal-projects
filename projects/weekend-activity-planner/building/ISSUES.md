@@ -62,7 +62,17 @@ CREATE VIEW recent_visits_with_details AS ...
 
 ## ACTIVE
 
-*No active issues currently.*
+### Issue #3: Meta Developer Portal Rate Limit
+**Date:** 2025-10-18
+**Component:** WhatsApp Cloud API Integration
+**Problem:** Hit Meta/Facebook rate limit when attempting to access https://developers.facebook.com/ to set up WhatsApp Business API
+**Impact:** Cannot proceed with WhatsApp integration until rate limit clears (blocks final 5% of project)
+**Root Cause:** Meta's anti-automation protection triggered by access patterns
+**Solution:** Wait for rate limit to clear (typically hours to 24 hours), then resume setup
+**Workaround:** None available - must wait for Meta to clear the limit
+**Status:** ACTIVE - Waiting for rate limit to clear
+**Timeline:** Should clear within 24 hours (by 2025-10-19)
+**Next Action:** Check https://developers.facebook.com/ periodically; when accessible, continue with WhatsApp setup per `building/session-logs/2025-10-18-whatsapp-integration-started.md`
 
 ---
 
