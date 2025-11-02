@@ -94,12 +94,12 @@ git push
 **Paste this TOML configuration:**
 
 ```toml
-# Supabase credentials
-SUPABASE_URL = "https://ohdmrfyyavlkoflbbjsd.supabase.co"
-SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9oZG1yZnl5YXZsa29mbGJianNkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDA0MTkyMywiZXhwIjoyMDc1NjE3OTIzfQ.rzd5PDAV_FwKq_jJRRgPjagVUyzuJQ_Z0w64uH2aZP0"
+# Supabase credentials (get from your .env file)
+SUPABASE_URL = "[your-supabase-url]"
+SUPABASE_SERVICE_ROLE_KEY = "[your-supabase-service-role-key]"
 
 # Anthropic API key (get from .env file)
-ANTHROPIC_API_KEY = "[your-anthropic-api-key-from-.env]"
+ANTHROPIC_API_KEY = "[your-anthropic-api-key]"
 ```
 
 **⚠️ Security Notes:**

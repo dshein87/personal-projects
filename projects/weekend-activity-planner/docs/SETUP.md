@@ -37,8 +37,8 @@
 1. In Supabase dashboard, go to Project Settings (gear icon) → API
 2. Copy these values:
    - **Project URL**: `https://xxxxx.supabase.co`
-   - **anon public key**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
-   - **service_role key**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` (click "Reveal")
+   - **anon public key**: `[your-anon-key]`
+   - **service_role key**: `[your-service-role-key]` (click "Reveal")
 
 ### Step 4: Add to .env File
 
@@ -50,8 +50,8 @@ cp .env.example .env
 Edit `.env` and add:
 ```
 SUPABASE_URL=https://xxxxx.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_ANON_KEY=[your-anon-key]
+SUPABASE_SERVICE_ROLE_KEY=[your-service-role-key]
 ```
 
 ### Step 5: Run Database Schema

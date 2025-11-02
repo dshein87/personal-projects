@@ -265,7 +265,7 @@ Once you've completed Steps 1-3:
 N8N_HOST=https://your-instance.app.n8n.cloud/api/v1
 N8N_API_KEY=n8n_api_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_ANON_KEY=eyJxxxx...
+SUPABASE_ANON_KEY=[your-supabase-anon-key]
 ```
 
 **MCP Server:**

@@ -40,8 +40,8 @@ ANTHROPIC_API_KEY=sk-ant-xxxxx
 **Environment Variables:**
 ```
 SUPABASE_URL=https://xxxxx.supabase.co
-SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxxxx
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxxxx
+SUPABASE_KEY=[your-anon-key]
+SUPABASE_SERVICE_ROLE_KEY=[your-service-role-key]
 ```
 
 ---

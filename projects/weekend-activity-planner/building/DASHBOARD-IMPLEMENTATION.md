@@ -428,8 +428,8 @@ git push
 
 ```toml
 SUPABASE_URL = "https://[your-project].supabase.co"
-SUPABASE_SERVICE_ROLE_KEY = "eyJhbGc..."  # Service role key
-ANTHROPIC_API_KEY = "sk-ant-..."
+SUPABASE_SERVICE_ROLE_KEY = "[redacted-rotated]"  # Use JWT Signing Key instead
+ANTHROPIC_API_KEY = "[redacted-rotated]"
 ```
 
 5. **Click "Deploy"**

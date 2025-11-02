@@ -49,7 +49,7 @@
 
 **User provided:**
 - n8n Cloud instance: `https://dshein.app.n8n.cloud`
-- n8n API key: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` (JWT token)
+- n8n API key: `[redacted-jwt-token-rotated]` (JWT token)
 
 **Process followed:**
 1. **Security validation FIRST:**
@@ -60,7 +60,7 @@
 2. **Updated `.env` file:**
    ```bash
    N8N_HOST=https://dshein.app.n8n.cloud/api/v1
-   N8N_API_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... (full JWT)
+   N8N_API_KEY=[redacted-jwt-token-rotated]
    MCP_HTTP_PORT=3000
    ```
 

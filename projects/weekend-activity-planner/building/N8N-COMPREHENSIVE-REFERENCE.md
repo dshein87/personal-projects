@@ -952,7 +952,7 @@ curl -X POST "https://n8n.example.com/send-credentials" \
   -d '{
     "supabaseApi": {
       "host": "https://xxx.supabase.co",
-      "serviceRole": "eyJhbGc..."
+      "serviceRole": "[redacted-rotated-use-jwt-signing-key]"
     }
   }'
 ```

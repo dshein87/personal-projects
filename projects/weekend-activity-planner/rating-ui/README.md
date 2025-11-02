@@ -32,7 +32,7 @@ pip install -r requirements.txt
 Make sure `../.env` has Supabase credentials:
 ```
 SUPABASE_URL=https://xxxxx.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_ANON_KEY=[your-supabase-anon-key]
 ```
 
 ### 3. Run the App
