@@ -37,7 +37,7 @@ def get_clients():
     """Initialize Supabase and Anthropic clients"""
     supabase = create_client(
         os.getenv('SUPABASE_URL'),
-        os.getenv('SUPABASE_SERVICE_ROLE_KEY')  # Server-side key for admin operations
+        os.getenv('SUPABASE_SECRET_KEY')  # Server-side secret key (migrated from service_role on 2025-11-02)
     )
     anthropic = Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
     return supabase, anthropic
