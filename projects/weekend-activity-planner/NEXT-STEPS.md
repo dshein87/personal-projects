@@ -1,439 +1,443 @@
 # Weekend Activity Planner - Next Steps
 
-**Current Status:** Phase 3 Automation - 100% Complete (E2E Test PASSED! 🎉)
-**Last Updated:** 2025-10-18 (WhatsApp Integration Started - Blocked by Meta Rate Limit)
-**Latest Session:** `building/session-logs/2025-10-18-whatsapp-integration-started.md`
+**Current Status:** Phase 4 (Dashboard) - Ready to Build!
+**Last Updated:** 2025-11-01
+**Latest Decision:** Email + Dashboard Architecture (Streamlit MVP → React v2)
+**Latest Documentation:** `building/DECISIONS.md` (Decision: Email + Dashboard Architecture)
 
 ---
 
-## ⚠️ CURRENT BLOCKER: Meta Rate Limit
+## 🎯 IMMEDIATE NEXT STEP (Start Here!)
 
-**Issue:** Hit Meta Developer portal rate limit when attempting WhatsApp Cloud API setup
-**Impact:** Cannot proceed with final WhatsApp integration step
-**Timeline:** Rate limit should clear within 24 hours (by 2025-10-19)
-**Action:** Check https://developers.facebook.com/ periodically - when accessible, follow steps below
-**Reference:** See Issue #3 in `building/ISSUES.md`
+### Build Streamlit Conversational Dashboard ⭐
 
----
+**Time:** 4 hours total
+**Goal:** Working chat dashboard deployed to Streamlit Cloud
+**Guide:** `building/DASHBOARD-IMPLEMENTATION.md` (complete step-by-step guide)
 
-## 🎉 Major Milestone: E2E Test PASSED!
-
-**What we accomplished (2025-10-18 session):**
-- ✅ Complete end-to-end workflow execution successful!
-- ✅ Fixed Match Restaurants `inputs[1]` undefined issue
-- ✅ Implemented defensive fallback using `this.helpers.httpRequest()`
-- ✅ Discovered n8n execution model limitation (split-rejoin patterns don't work)
-- ✅ Validated scoring algorithm (0.71/1.0 for top activity)
-- ✅ Confirmed WhatsApp message formatting perfect
-- ✅ All 10 nodes executing in ~4-5 seconds
-
-**Workflow Status:**
-- **ID:** `wRRp1fTwNzOHr9rY`
-- **Test Result:** ✅ ALL 10 NODES SUCCEEDED
-- **Top Activity:** Tacos Oscar (Oakland, 8 min, score 0.716)
-- **Restaurant Matching:** Working (2 matched per activity)
-- **Ready for:** WhatsApp Cloud API integration
-
-**What this means:**
-- The recommendation engine works end-to-end!
-- Scoring algorithm validated with real data
-- Only remaining step: Connect to WhatsApp for delivery
+**Why this is the priority:**
+- WhatsApp blocked by Meta → pivoted to superior architecture
+- Email + Dashboard = platform-agnostic, swappable push mechanism
+- Streamlit MVP = ship THIS WEEK (4 hrs vs 20 hrs for React)
+- Validate concept with wife before investing in polish
 
 ---
 
-## 🚀 IMMEDIATE NEXT STEP (Start Here!)
+## 📋 Implementation Checklist
 
-### WhatsApp Cloud API Integration ⭐
+### Phase 1: Database Schema (15 minutes)
 
-**Time:** 2-3 hours active + 2-7 day Meta approval wait
-**Priority:** HIGH - Final step to go live!
-**Status:** Workflow tested and ready
+**Location:** Supabase SQL Editor
 
-**Prerequisites:**
-- n8n browser tab open: https://dshein.app.n8n.cloud/workflow/wRRp1fTwNzOHr9rY
-- Supabase credential already configured in n8n
-- All 10 nodes already fixed and deployed
+- [ ] Create `conversations` table
+  - Stores chat messages (user ↔ assistant)
+  - Links to magic link tokens
+  - JSONB metadata for structured actions
 
-**Testing Instructions:**
+- [ ] Create `conversation_tokens` table
+  - Magic link security
+  - 7-day expiration
+  - Tracks token usage
 
-**1. Refresh Browser** (5 seconds)
-```bash
-# In browser with n8n workflow open
-# Press: Cmd+R (macOS) to reload latest deployed code
-```
-
-**2. Verify Critical Setting** (30 seconds)
-- Click on "Query Restaurants" node
-- Check that "Execute Once" toggle is **ON** (should be green)
-- If OFF, turn it ON and save
-
-> ⚠️ **CRITICAL:** Execute Once must be ON or query will timeout (tries 1518 requests instead of 1)
-
-**3. Run Complete Workflow** (10 seconds)
-- Click on "Manual Trigger" node (first node)
-- Click "Execute Workflow" button (bottom of screen)
-- Watch nodes turn green as they execute
-
-**4. Expected Results** (all nodes should succeed):
-- ✅ **Query Visit History:** ~1518 visit records (2-3 seconds)
-- ✅ **Query Activities:** 76 activities (1-2 seconds)
-- ✅ **Score Activities:** Top 3 activities with scores 0.6-0.9 (1 second)
-- ✅ **Query Restaurants:** ~30 dietary-safe restaurants (2-3 seconds, not timeout!)
-- ✅ **Match Restaurants:** Activities paired with 0-2 restaurants each (1 second)
-- ✅ **Format Message:** WhatsApp-formatted text message (1 second)
-- ✅ **Output Placeholder:** Passes through formatted message (instant)
-
-**Total execution time:** ~5-10 seconds
-
-**5. Verify Output** (2 minutes)
-
-Click on "Format Message" node and check output:
-
-**Should see:**
-```
-🎉 *Weekend Activity Suggestions* 🎉
-
-Here are your top 3 activities for this weekend:
-
-1. *[Activity Name]* ([City])
-   📍 [X] min drive | ⭐ [rating]/5
-   [description]
-   🕐 Last visited [X] days ago (or ✨ *New activity - never tried!*)
-   🍽️ *Nearby Dining:*
-      • [Restaurant 1] (Mexican) - 4.5⭐
-      • [Restaurant 2] (Mexican) - 4.2⭐
-   🔗 [url]
-
-2. *[Activity 2]* ...
-
-3. *[Activity 3]* ...
-
-Have a great weekend! 🌟
-
-_Reply with feedback to help improve future suggestions._
-```
-
-**Quality Checks:**
-- ✅ Exactly 3 activities
-- ✅ Diverse categories (not 3 identical parks)
-- ✅ Diverse cities (mix of Oakland, Berkeley, etc.)
-- ✅ Each activity has 0-2 restaurants
-- ✅ All restaurants are dietary-safe (celiac + allergens)
-- ✅ Message is mobile-friendly
-
-**If test succeeds:** 🎉 Phase 3 is 100% complete! Move to Step 2.
-
-**If test fails:** See troubleshooting below.
-
----
-
-## 🐛 Troubleshooting (If Test Fails)
-
-### Error: Query Restaurants timeout
-**Cause:** Execute Once setting is OFF
-**Fix:** Click Query Restaurants node → Toggle "Execute Once" ON → Save → Retry
-
-### Error: `.map is not a function` in any Code node
-**Cause:** Code deployed but not loaded in browser
-**Fix:** Hard refresh browser (Cmd+Shift+R) → Retry
-
-### Error: Column doesn't exist (visits/restaurants)
-**Cause:** Old query cached in node
-**Fix:** This was fixed in previous session, shouldn't happen. See `building/session-logs/2025-10-15-n8n-workflow-testing-and-debugging.md` for schema fixes.
-
-### Other errors
-**Reference:**
-- `building/session-logs/2025-10-15-n8n-workflow-testing-and-debugging.md` (8 issues documented)
-- `building/session-logs/2025-10-15-format-message-proactive-fix.md` (this session)
-
----
-
-## 📋 Following Steps (In Order)
-
-### Step 2: Register for WhatsApp Cloud API (30 min + 2-7 day wait)
-
-**Goal:** Get approved for Meta WhatsApp Business API
-
-**Steps:**
-1. Go to https://developers.facebook.com/docs/whatsapp/cloud-api/get-started
-2. Create Meta Business Account (if not already)
-3. Create new app → Select "WhatsApp" product
-4. Follow setup wizard:
-   - Add WhatsApp product to app
-   - Get test phone number (temporary)
-   - Request production access (requires business verification)
-5. Complete business verification:
-   - Upload business documents
-   - Verify phone number
-   - Wait for approval (2-7 days typical)
-
-**What you'll need:**
-- Business information (can use personal)
-- Website URL (can be personal site)
-- Business phone number
-- Government ID for verification
-
-**What you'll get:**
-- `Phone Number ID` (from WhatsApp dashboard)
-- `Access Token` (from app settings)
-- `Business Account ID`
-
-**Add to `.env`:**
-```bash
-WHATSAPP_PHONE_NUMBER_ID=[from dashboard]
-WHATSAPP_ACCESS_TOKEN=[from app settings]
-WHATSAPP_BUSINESS_ACCOUNT_ID=[from dashboard]
-RECIPIENT_PHONE_NUMBER=[wife's phone number with country code, e.g., +15105551234]
-```
-
-**Meanwhile:** Workflow continues to use Output Placeholder (no actual messages sent yet)
-
----
-
-### Step 3: Replace Output Placeholder with WhatsApp Node (2 hours)
-
-**After WhatsApp API approval:**
-
-**A. Create WhatsApp Send Message node via API** (1.5 hours)
-
-```bash
-cd "/Users/dshein/Personal Projects/projects/weekend-activity-planner"
-
-# Create Python script to add WhatsApp node
-cat > /tmp/add_whatsapp_node.py << 'EOF'
-#!/usr/bin/env python3
-import json
-import urllib.request
-
-# Read environment
-env_vars = {}
-with open('.env', 'r') as f:
-    for line in f:
-        line = line.strip()
-        if line and not line.startswith('#') and '=' in line:
-            key, value = line.split('=', 1)
-            env_vars[key] = value
-
-N8N_API_KEY = env_vars.get('N8N_API_KEY')
-WHATSAPP_PHONE_NUMBER_ID = env_vars.get('WHATSAPP_PHONE_NUMBER_ID')
-WHATSAPP_ACCESS_TOKEN = env_vars.get('WHATSAPP_ACCESS_TOKEN')
-RECIPIENT_PHONE = env_vars.get('RECIPIENT_PHONE_NUMBER')
-
-# Fetch workflow
-url = "https://dshein.app.n8n.cloud/api/v1/workflows/wRRp1fTwNzOHr9rY"
-req = urllib.request.Request(url, headers={"X-N8N-API-KEY": N8N_API_KEY})
-with urllib.request.urlopen(req) as response:
-    workflow = json.loads(response.read())
-
-# Remove Output Placeholder
-workflow['nodes'] = [n for n in workflow['nodes'] if n['id'] != 'output-placeholder']
-
-# Add WhatsApp Send Message node
-workflow['nodes'].append({
-    "id": "whatsapp-send",
-    "name": "Send WhatsApp Message",
-    "type": "n8n-nodes-base.httpRequest",
-    "typeVersion": 4.2,
-    "position": [1150, 300],
-    "parameters": {
-        "method": "POST",
-        "url": f"https://graph.facebook.com/v18.0/{WHATSAPP_PHONE_NUMBER_ID}/messages",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendHeaders": True,
-        "headerParameters": {
-            "parameters": [
-                {
-                    "name": "Authorization",
-                    "value": f"Bearer {WHATSAPP_ACCESS_TOKEN}"
-                },
-                {
-                    "name": "Content-Type",
-                    "value": "application/json"
-                }
-            ]
-        },
-        "sendBody": True,
-        "bodyParameters": {
-            "parameters": []
-        },
-        "jsonBody": f"""{{
-            "messaging_product": "whatsapp",
-            "to": "{RECIPIENT_PHONE}",
-            "type": "text",
-            "text": {{
-                "body": "{{{{ $json.message }}}}"
-            }}
-        }}"""
-    }
-})
-
-# Update connections (Format Message → WhatsApp Send)
-workflow['connections']['format-message'] = {
-    "main": [[{"node": "whatsapp-send", "type": "main", "index": 0}]]
-}
-
-# Clean for PUT
-clean_workflow = {
-    'name': workflow['name'],
-    'nodes': workflow['nodes'],
-    'connections': workflow['connections'],
-    'settings': workflow['settings']
-}
-
-# Save
-with open('/tmp/workflow-with-whatsapp.json', 'w') as f:
-    json.dump(clean_workflow, f, indent=2)
-
-print("✅ WhatsApp node added")
-print(f"   - Phone: {RECIPIENT_PHONE}")
-print(f"   - Will send to wife's WhatsApp")
-EOF
-
-python3 /tmp/add_whatsapp_node.py
-
-# Deploy
-N8N_API_KEY=$(grep "^N8N_API_KEY=" .env | cut -d= -f2)
-curl -X PUT "https://dshein.app.n8n.cloud/api/v1/workflows/wRRp1fTwNzOHr9rY" \
-  -H "X-N8N-API-KEY: ${N8N_API_KEY}" \
-  -H "Content-Type: application/json" \
-  -d @/tmp/workflow-with-whatsapp.json
-```
-
-**B. Test WhatsApp delivery** (30 minutes)
-
-1. Refresh n8n browser (Cmd+R)
-2. Run workflow manually (Execute Workflow button)
-3. Check wife's WhatsApp for message
-4. Verify message formatting looks good on mobile
-
-**Reference:** `building/API-REFERENCE.md` → WhatsApp Cloud API section
-
----
-
-### Step 4: Activate Workflow for Thursday Noon (5 minutes)
-
-**After successful WhatsApp test:**
-
-**Via n8n GUI:**
-1. Open workflow: https://dshein.app.n8n.cloud/workflow/wRRp1fTwNzOHr9rY
-2. Replace "Manual Trigger" with "Schedule Trigger"
-   - Cron: `0 12 * * 4` (Thursday 12pm)
-   - Timezone: `America/Los_Angeles`
-3. Click "Active" toggle (top right) to activate
+**SQL scripts:** See `building/DASHBOARD-IMPLEMENTATION.md` Phase 1
 
 **Verification:**
-```bash
-cd "/Users/dshein/Personal Projects/projects/weekend-activity-planner"
-API_KEY=$(grep "^N8N_API_KEY=" .env | cut -d= -f2)
-curl -s -H "X-N8N-API-KEY: ${API_KEY}" \
-  "https://dshein.app.n8n.cloud/api/v1/workflows/wRRp1fTwNzOHr9rY" | \
-  python3 -c "import sys,json; d=json.load(sys.stdin); print(f'Active: {d[\"active\"]}')"
-
-# Expected: Active: True
+```sql
+SELECT COUNT(*) FROM conversations;  -- Should work (0 rows initially)
+SELECT COUNT(*) FROM conversation_tokens;  -- Should work (0 rows initially)
 ```
 
 ---
 
-### Step 5: Monitor First Automated Execution (10 minutes)
+### Phase 2: Streamlit Dashboard (2 hours)
 
-**When:** Next Thursday at 12:00 PM PST
+**Location:** `rating-ui/chat_dashboard.py` (new file)
 
-**What to check:**
-- Workflow executed successfully
-- Message was sent to WhatsApp
-- Wife received the message
-- Activities and restaurants look good
-- Message format is mobile-friendly
+- [ ] Magic link validation system
+  - Parse `conv_id` from URL params
+  - Check token exists and hasn't expired
+  - Mark token as used
 
-**Verification:**
-```bash
-# Check recent executions
-open "https://dshein.app.n8n.cloud/executions"
+- [ ] Chat UI implementation
+  - Use `st.chat_message()` for conversation display
+  - Use `st.chat_input()` for user input
+  - Load conversation history from Supabase
+  - Display messages with proper avatars (👤 user, 🤖 assistant)
 
-# Or via API
-curl -s -H "X-N8N-API-KEY: ${API_KEY}" \
-  "https://dshein.app.n8n.cloud/api/v1/executions?workflowId=wRRp1fTwNzOHr9rY&limit=5"
+- [ ] Claude API integration
+  - Build message history for context
+  - Call Claude with system prompt
+  - Handle streaming responses (optional)
+  - Save responses to conversations table
+
+- [ ] Conversation persistence
+  - Save user messages to Supabase immediately
+  - Save assistant responses after Claude returns
+  - Auto-reload messages on page refresh
+
+- [ ] Mobile responsiveness
+  - Test on phone/tablet
+  - Verify chat input stays visible
+  - Check keyboard doesn't cover input
+
+**Complete code:** See `building/DASHBOARD-IMPLEMENTATION.md` Phase 2
+
+---
+
+### Phase 3: Local Testing (30 minutes)
+
+- [ ] Create test token manually
+  ```sql
+  INSERT INTO conversation_tokens (conv_id, expires_at)
+  VALUES ('test-123', NOW() + INTERVAL '7 days');
+  ```
+
+- [ ] Run dashboard locally
+  ```bash
+  cd rating-ui
+  source .venv/bin/activate
+  pip install anthropic  # Add to requirements.txt
+  streamlit run chat_dashboard.py
+  ```
+
+- [ ] Open test URL
+  ```
+  http://localhost:8501?conv_id=test-123
+  ```
+
+- [ ] Test flow
+  - [ ] Page loads without errors
+  - [ ] Can type messages
+  - [ ] Claude responds
+  - [ ] Messages persist after refresh
+  - [ ] Mobile responsive (resize browser)
+
+---
+
+### Phase 4: Streamlit Cloud Deployment (15 minutes)
+
+- [ ] Update dependencies
+  ```bash
+  cd rating-ui
+  echo "anthropic>=0.34.0" >> requirements.txt
+  ```
+
+- [ ] Commit and push
+  ```bash
+  git add rating-ui/chat_dashboard.py
+  git add rating-ui/requirements.txt
+  git commit -m "feat: Add conversational dashboard with Claude API"
+  git push
+  ```
+
+- [ ] Deploy to Streamlit Cloud
+  - Visit: https://share.streamlit.io/
+  - Click "New app"
+  - Select repo + branch
+  - Main file: `rating-ui/chat_dashboard.py`
+  - Add secrets (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY)
+  - Deploy
+
+- [ ] Test deployed app
+  ```
+  https://weekend-planner-[random].streamlit.app?conv_id=test-123
+  ```
+
+**Save this URL** - you'll need it for n8n workflow!
+
+---
+
+### Phase 5: n8n Workflow Updates (45 minutes)
+
+**Location:** n8n Cloud (workflow ID: wRRp1fTwNzOHr9rY)
+
+- [ ] Add "Generate Magic Link" node (Code node)
+  - Generate unique token: `${date}-${crypto.randomBytes(16).toString('hex')}`
+  - Calculate expiration: 7 days from now
+  - Build dashboard URL with conv_id parameter
+
+- [ ] Add "Store Magic Link Token" node (HTTP Request)
+  - POST to `/rest/v1/conversation_tokens`
+  - Store conv_id and expires_at
+
+- [ ] Add "Store Suggestions in Conversation" node (HTTP Request)
+  - POST to `/rest/v1/conversations`
+  - Save initial suggestions as assistant message
+  - Include metadata with activity_ids
+
+- [ ] Update Email node (Gmail or existing email service)
+  - Replace WhatsApp Send node
+  - Subject: "🎉 Your Weekend Suggestions Are Ready!"
+  - Body: HTML email with magic link button
+  - Link: Dashboard URL with conv_id
+
+- [ ] Test complete workflow
+  - Click "Execute Workflow"
+  - Verify all nodes succeed
+  - Check email inbox
+  - Click magic link
+  - Verify dashboard loads with suggestions
+
+**Complete code:** See `building/DASHBOARD-IMPLEMENTATION.md` Phase 4
+
+---
+
+### Phase 6: End-to-End Testing (15 minutes)
+
+- [ ] **Database verification**
+  ```sql
+  SELECT * FROM conversation_tokens ORDER BY created_at DESC LIMIT 1;
+  SELECT * FROM conversations ORDER BY created_at DESC LIMIT 1;
+  ```
+
+- [ ] **Email delivery**
+  - Check inbox for email
+  - Verify subject line
+  - Click magic link
+  - Should open dashboard
+
+- [ ] **Dashboard functionality**
+  - Loads without errors
+  - Shows suggestions from assistant
+  - Can type messages
+  - Claude responds appropriately
+  - Messages persist
+
+- [ ] **Conversation memory**
+  - Type: "What's the weather like?"
+  - Claude should respond contextually
+  - Type: "We went to Frog Park, kids loved it!"
+  - Claude should acknowledge and respond
+
+- [ ] **Mobile experience**
+  - Open link on phone
+  - Dashboard responsive
+  - Can type and send messages
+  - Keyboard doesn't cover input
+
+---
+
+## 🎨 Optional Enhancements (Week 2+)
+
+These can wait until after basic functionality works:
+
+### Visual Enhancements
+
+- [ ] Add activity photos to suggestions
+  - Store image URLs in activities table
+  - Display with `st.image()`
+
+- [ ] Add map integration
+  - "View Map" button per activity
+  - Open Google Maps with coordinates
+
+- [ ] Add rating buttons in chat
+  - Quick thumbs up/down
+  - Update visits table directly from chat
+
+### Claude Prompt Improvements
+
+- [ ] Test different system prompts
+  - More conversational tone?
+  - Better activity descriptions?
+  - More proactive suggestions?
+
+- [ ] Add MCP tool calling
+  - Let Claude query activities table
+  - Let Claude update ratings
+  - Let Claude check weather
+
+### n8n Workflow Enhancements
+
+- [ ] Add webhook for inbound messages (future)
+  - If user replies to email
+  - Parse reply and add to conversation
+
+- [ ] Add scheduled cleanup
+  - Delete expired tokens
+  - Archive old conversations
+
+---
+
+## 🔄 Future Upgrade Path (Optional)
+
+### When to Consider React Rebuild
+
+**Upgrade to React + FastAPI IF:**
+- ✅ Wife actively uses Streamlit dashboard weekly
+- AND one of:
+  - UI polish is limiting adoption
+  - Need features Streamlit can't support
+  - Want real-time features (WebSockets)
+  - Scaling beyond family users
+
+**Time investment:** ~25 hours (but with validated concept + usage data)
+
+**What stays the same:**
+- Email workflow (n8n)
+- Database schema (conversations, tokens)
+- Magic link system (same format)
+- Claude prompts (reuse!)
+
+**What changes:**
+- Dashboard UI (Streamlit → React + shadcn/ui)
+- Backend API (Streamlit server → FastAPI)
+- Deployment (Streamlit Cloud → Vercel + Railway)
+
+**Migration guide:** See `building/DECISIONS.md` - "Migration Path (Streamlit → React)"
+
+---
+
+## 📊 Success Metrics
+
+### Week 1 (This Week)
+
+**Goal:** Deploy working dashboard
+
+- [ ] Dashboard deployed to Streamlit Cloud
+- [ ] Magic links working end-to-end
+- [ ] Claude API integration working
+- [ ] Can send test email and chat
+
+### Week 2
+
+**Goal:** Wife tests and provides feedback
+
+- [ ] Send first real suggestion email (Thursday noon)
+- [ ] Wife clicks link and explores dashboard
+- [ ] She chats with Claude at least once
+- [ ] Collect feedback on UX
+
+### Weeks 3-4
+
+**Goal:** Regular usage and iteration
+
+- [ ] Wife uses dashboard weekly
+- [ ] Provides feedback via chat
+- [ ] System learns from feedback (ratings update)
+- [ ] Suggestions improve based on data
+
+### Month 2
+
+**Goal:** Decide on v2 path
+
+- [ ] Dashboard is working well → keep Streamlit, focus on content
+- [ ] OR: UI polish needed → plan React rebuild
+- [ ] OR: Not being used → diagnose why (content? UX? timing?)
+
+---
+
+## 🚨 Common Issues & Solutions
+
+### Issue: "Invalid link" error
+
+**Check:**
+```sql
+SELECT * FROM conversation_tokens WHERE conv_id = 'YOUR-TOKEN';
 ```
 
-**Ask wife:**
-- Did you get the message?
-- Does it look good on your phone?
-- Are the suggestions interesting?
-- Anything broken or confusing?
+**Possible causes:**
+- Token not created (n8n node failed)
+- Token expired (> 7 days)
+- Typo in conv_id
+
+**Fix:**
+- Check n8n execution logs
+- Create test token manually
+- Verify URL parameter
 
 ---
 
-## 🎯 Success Criteria
+### Issue: Claude not responding
 
-### Workflow Test Passes When:
-- ✅ All 10 nodes execute without errors
-- ✅ Returns exactly 3 activities
-- ✅ Activities scored 0.6-0.9 (good range)
-- ✅ Top 3 have diversity (different categories/cities)
-- ✅ Each activity has 0-2 restaurants
-- ✅ All restaurants are dietary-safe
-- ✅ Message formatted for WhatsApp
-- ✅ Workflow completes in 5-10 seconds (not timeout!)
+**Check Streamlit logs** (in Streamlit Cloud dashboard)
 
-### v1 is Launched When:
-- ✅ Workflow active in n8n
-- ✅ WhatsApp integration working
-- ✅ Thursday noon schedule runs automatically
-- ✅ Wife receives messages successfully
-- ✅ Suggestions are high-quality and relevant
+**Possible causes:**
+- Missing ANTHROPIC_API_KEY
+- Invalid API key
+- Rate limit hit
+
+**Fix:**
+- Add key to Streamlit secrets
+- Verify key in Anthropic dashboard
+- Check usage/limits
 
 ---
 
-## 📚 Documentation Reference
+### Issue: Messages not persisting
 
-**For this step:**
-- **Latest session:** `building/session-logs/2025-10-15-format-message-proactive-fix.md`
-- **Previous session:** `building/session-logs/2025-10-15-n8n-workflow-testing-and-debugging.md`
-- **Technical details:** `building/N8N-WORKFLOW-SPECIFICATION.md`
+**Check:**
+```sql
+SELECT * FROM conversations WHERE conversation_id = 'YOUR-TOKEN';
+```
 
-**For future steps:**
-- **WhatsApp setup:** `building/API-REFERENCE.md` → WhatsApp Cloud API
-- **Quick commands:** `building/QUICK-REFERENCE.md`
-- **Full guide:** `building/DEPLOYMENT-COMPLETE.md`
+**Possible causes:**
+- Wrong Supabase credentials
+- Using anon key instead of service role key
+- Exception during save
 
----
-
-## ⏱️ Time Estimate to v1 Launch
-
-**Completed:**
-- Phase 1 (Foundation): 100% ✅
-- Phase 2 (MCP Servers): 100% ✅
-- Phase 3 (Automation): 100% ✅ (workflow complete and debugged!)
-
-**Remaining:**
-- E2E test: 5 minutes
-- WhatsApp registration: 30 min + 2-7 day wait
-- WhatsApp integration: 2 hours
-- Monitoring first run: 10 minutes
-
-**Total remaining:** ~3 hours of work + Meta approval wait
-
-**Overall project completion:** 90%
+**Fix:**
+- Verify SUPABASE_SERVICE_ROLE_KEY
+- Check Supabase logs
+- Add error logging in code
 
 ---
 
-## 🎉 What Makes This Special
+## 📚 Reference Documentation
 
-**Pattern Recognition in Action:**
-- After encountering same error 3 times (Score Activities, Match Restaurants twice)
-- Proactively analyzed Format Message **before** testing
-- Applied same fix pattern preventively
-- Avoided 4th iteration of test → error → fix cycle
-- Demonstrates learning from debugging patterns
+### Implementation Guides
 
-**Workflow is production-ready:**
-- All schema mismatches fixed
-- All data format issues resolved
-- All Code nodes handle HTTP Request arrays
-- Execute Once mode properly configured
-- Just needs E2E verification + WhatsApp hookup
+- **Step-by-step:** `building/DASHBOARD-IMPLEMENTATION.md`
+- **Architecture decision:** `building/DECISIONS.md` (Email + Dashboard Architecture)
+- **Testing:** `building/TESTING.md`
+
+### Database References
+
+- **Schema:** `database/schema.sql`
+- **New tables:** Documented in DASHBOARD-IMPLEMENTATION.md Phase 1
+
+### API Documentation
+
+- **Claude API:** https://docs.anthropic.com/
+- **Streamlit:** https://docs.streamlit.io/
+- **Supabase:** https://supabase.com/docs
+
+### Deployment
+
+- **Streamlit Cloud:** https://share.streamlit.io/
+- **n8n Cloud:** https://dshein.app.n8n.cloud/
 
 ---
 
-*Next session: Test workflow E2E (5 minutes). Instructions above. Let's ship this! 🚀*
+## ⏱️ Time Breakdown
+
+| Phase | Task | Time | Status |
+|-------|------|------|--------|
+| 1 | Database schema | 15 min | ⏸️ TODO |
+| 2 | Streamlit dashboard | 2 hours | ⏸️ TODO |
+| 3 | Local testing | 30 min | ⏸️ TODO |
+| 4 | Streamlit Cloud deploy | 15 min | ⏸️ TODO |
+| 5 | n8n workflow updates | 45 min | ⏸️ TODO |
+| 6 | End-to-end testing | 15 min | ⏸️ TODO |
+| **TOTAL** | **MVP complete** | **4 hours** | **Ready to start!** |
+
+---
+
+## 🎯 Bottom Line
+
+**What we're building:** Email → Magic Link → Streamlit Dashboard → Chat with Claude → Learn from feedback
+
+**Why this approach:**
+- ✅ Ship THIS WEEK (not weeks from now)
+- ✅ Validate concept before investing in polish
+- ✅ Platform-agnostic (can add WhatsApp later without rewriting)
+- ✅ Rich UI (photos, maps, buttons - not just text)
+- ✅ Fast iteration (single codebase, free hosting)
+
+**Next action:** Follow `building/DASHBOARD-IMPLEMENTATION.md` step-by-step
+
+**Questions?** See `building/DECISIONS.md` for full architectural rationale
+
+---
+
+*Ready to build? Start with `building/DASHBOARD-IMPLEMENTATION.md` Phase 1!*

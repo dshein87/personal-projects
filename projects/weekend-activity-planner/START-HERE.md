@@ -17,20 +17,20 @@ You're building an AI-powered weekend activity planner for your family (kids age
 
 ## 📍 Current Status
 
-**Phase:** 3 (Automation) - ✅ **100% COMPLETE! E2E Test PASSED!** 🎉
+**Phase:** 4 (Dashboard) - 🚧 **READY TO BUILD!**
 
-**Major Milestone (2025-10-18):**
+**Major Architectural Decision (2025-11-01):**
+- ✅ **Pivoted from WhatsApp bot → Email + Dashboard architecture**
+- ✅ **Chose Streamlit MVP → React v2 upgrade path (hybrid approach)**
+- ✅ **4-hour implementation time vs 20 hours for React**
+- ✅ **Platform-agnostic design: swappable push mechanism**
+- 📋 **Ready to build conversational dashboard THIS WEEK**
+
+**Previous Milestone (2025-10-18):**
 - ✅ **n8n workflow tested end-to-end - ALL NODES SUCCEEDED!**
 - ✅ **Match Restaurants defensive fallback fix** (n8n execution model workaround)
 - ✅ **Scoring algorithm validated** (0.71/1.0 for top activity)
 - ✅ **WhatsApp message formatting perfect**
-- ✅ **Ready for WhatsApp Cloud API integration!**
-
-**Previous Milestone (2025-10-15):**
-- ✅ Complete 10-node n8n workflow built, deployed, and debugged
-- ✅ 4-hour debugging session (8+ node fixes completed)
-- ✅ All schema mismatches fixed (visits, restaurants)
-- ✅ Execute Once mode fix (Query Restaurants timeout resolved)
 
 **What's Done:**
 - ✅ Complete project structure
@@ -55,7 +55,8 @@ You're building an AI-powered weekend activity planner for your family (kids age
 4. ~~Build n8n workflow~~ ✅ DONE (deployed 2025-10-15)
 5. ~~Debug all workflow nodes~~ ✅ DONE (2025-10-15)
 6. ~~Test workflow E2E~~ ✅ DONE (2025-10-18 - all nodes passed!)
-7. **WhatsApp Cloud API integration** (2-3 hours + 2-7 day approval wait) ⭐ START HERE
+7. ~~Architectural decision~~ ✅ DONE (2025-11-01 - Email + Dashboard!)
+8. **Build Streamlit Dashboard** (4 hours total) ⭐ START HERE
 
 ---
 
@@ -101,21 +102,45 @@ All MCP servers built and n8n workflow deployed successfully! (2025-10-14/15)
 
 **Result:** All 10 nodes executed successfully! Top activity scored 0.71/1.0.
 
-### Action 9: WhatsApp Cloud API Integration ⏸️ STARTED (BLOCKED)
+### ~~Action 9: WhatsApp Integration~~ ⏸️ DEFERRED
 
-**⚠️ BLOCKER (2025-10-18):** Hit Meta Developer portal rate limit
-**Status:** Waiting for rate limit to clear (should be < 24 hours)
-**When cleared:** Follow detailed setup in `NEXT-STEPS.md`
+**Decision (2025-11-01):** Pivoted to superior Email + Dashboard architecture
+**Why:** WhatsApp blocked → forced rethink → discovered better design
+**New approach:** Platform-agnostic dashboard (works with Email, WhatsApp, Signal, SMS)
+**Benefit:** Swappable push mechanism, richer UI, faster to ship
 
-**Quick check if rate limit cleared:**
+**See:** `building/DECISIONS.md` - "Email + Dashboard Architecture" for full rationale
+
+### Action 10: Build Streamlit Dashboard ⭐ START HERE
+
+**Time:** 4 hours total
+**Status:** Ready to build!
+**Guide:** `building/DASHBOARD-IMPLEMENTATION.md`
+
+**Quick start:**
 ```bash
-open "https://developers.facebook.com/"
-# If page loads → rate limit cleared, proceed with setup
-# If blocked → wait and try tomorrow
+# Step 1: Create database tables (15 min)
+# - conversations (stores chat messages)
+# - conversation_tokens (magic link security)
+
+# Step 2: Build Streamlit chat UI (2 hours)
+cd rating-ui
+# Create chat_dashboard.py with Claude API integration
+
+# Step 3: Deploy to Streamlit Cloud (15 min)
+# - Free tier hosting
+# - Auto-deploy on git push
+
+# Step 4: Update n8n workflow (45 min)
+# - Generate magic links
+# - Send email with dashboard link
+
+# Step 5: Test end-to-end (15 min)
+# - Email → Dashboard → Chat → Claude → Learn
 ```
 
-**Time to complete (when unblocked):** 2-3 hours + 2-7 day Meta approval wait
-**Reference:** `building/session-logs/2025-10-18-whatsapp-integration-started.md`
+**Detailed guide:** See `building/DASHBOARD-IMPLEMENTATION.md` for step-by-step implementation
+**Next steps:** See `NEXT-STEPS.md` for task breakdown
 
 ---
 

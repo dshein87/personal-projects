@@ -434,4 +434,410 @@ score = base_rating × e^(-drive_time/30)  // if drive_time > 30
 
 ---
 
-*Add new decisions as they're made during the build.*
+## 2025-11-01: Email + Dashboard Architecture (Streamlit MVP → React v2)
+
+**Context:** After completing the n8n workflow and testing end-to-end, we hit a blocker setting up WhatsApp Cloud API (Meta rate limiting, phone registration errors). This forced a strategic rethink of the delivery mechanism and led to a superior architectural pattern.
+
+**Decision:** Build **Email + Web Dashboard** hybrid system with swappable push mechanism
+
+**Architecture:**
+```
+Push Layer (Email/WhatsApp/Signal/etc) → Magic Link → Dashboard → Claude API → Supabase
+                                            ↓                        ↑
+                                      conversations table      Learning loop
+```
+
+**Tech Stack for MVP:**
+- **Push:** Email (Gmail/existing account)
+- **Dashboard:** Streamlit (Python)
+- **Backend:** Supabase (PostgreSQL)
+- **Intelligence:** Claude API (Anthropic)
+- **Deployment:** Streamlit Cloud (free tier)
+
+**Upgrade Path (v2 - Optional):**
+- **Dashboard:** React + shadcn/ui + Tailwind CSS
+- **Backend:** FastAPI (Python) + WebSockets
+- **Deployment:** Vercel (frontend) + Railway/Render (backend)
+
+---
+
+### The Key Insight: Separation of Concerns
+
+**What we realized:**
+- Push mechanism is disposable (just a notification)
+- Dashboard is the actual product (where conversation happens)
+- Backend is platform-agnostic (doesn't care how user arrived)
+
+**Traditional messaging bot approach:**
+```
+Platform-locked: WhatsApp SDK → WhatsApp chat → Learning loop
+```
+Problem: Tightly coupled to WhatsApp. Switching platforms = rewrite everything.
+
+**Our approach:**
+```
+Swappable: Email → Dashboard ← WhatsApp/Signal/SMS (all point to same dashboard)
+```
+Benefit: Swap push mechanism in 15 minutes without touching dashboard or backend.
+
+---
+
+### Why Email + Streamlit for MVP
+
+**Time to ship:**
+- Streamlit: 4 hours total (build + deploy + test)
+- React + FastAPI: 20 hours total (5x longer)
+
+**Cost:**
+- Streamlit: $5/month (Claude API only)
+- React + FastAPI: $20-30/month (hosting + Claude API)
+
+**Risk management:**
+- **Hypothesis to test:** Will wife actually use this?
+- **Streamlit:** If she doesn't use it → 4 hours wasted
+- **React:** If she doesn't use it → 20 hours wasted
+
+**Validation over perfection:**
+- Get working system in user's hands THIS WEEK
+- Collect feedback with real usage
+- Iterate quickly based on what actually matters
+- Rebuild with React later IF needed (but maybe not!)
+
+---
+
+### Why NOT WhatsApp/Telegram/Signal for v1
+
+**Problems with messaging platforms:**
+1. **Setup complexity:** Meta phone registration, Telegram bot tokens, Signal CLI setup
+2. **Approval delays:** WhatsApp requires 2-7 day business verification
+3. **Platform lock-in:** Building for WhatsApp = rewriting for Telegram
+4. **Limited UI:** Text-only, no rich visualizations, hard to show activity details
+5. **No conversation history UI:** Can't scroll back easily to see past suggestions
+
+**Dashboard advantages:**
+1. **Rich UI:** Show activity photos, maps, drive time, ratings visually
+2. **Conversation history:** Full scrollable history of suggestions and feedback
+3. **Interactive elements:** Rating buttons, "View Details" links, "Get Directions"
+4. **Desktop + mobile:** Works on all devices, responsive by default
+5. **No platform dependencies:** Own the experience, not beholden to Meta/Telegram/etc.
+
+---
+
+### Detailed Comparison Matrix
+
+| Factor | Streamlit Dashboard | React + FastAPI | WhatsApp/Telegram Bot |
+|--------|---------------------|-----------------|----------------------|
+| **Time to ship** | 4 hours | 20 hours | Blocked (weeks?) |
+| **Initial cost** | $0 (Streamlit Cloud free) | $20/mo | $0 (Meta free tier) |
+| **Maintenance** | Easy (1 file, Python) | Complex (2 codebases) | Medium (1 codebase) |
+| **UI richness** | ⭐⭐⭐⭐ (photos, maps, buttons) | ⭐⭐⭐⭐⭐ | ⭐⭐ (text only) |
+| **Mobile UX** | ⭐⭐⭐⭐ (responsive) | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| **Iteration speed** | Fast (change code, deploy) | Slow (2 codebases) | Medium |
+| **Platform lock-in** | None | None | High (WhatsApp-specific) |
+| **Push mechanism** | Email (swappable) | Email (swappable) | Built-in (locked) |
+| **Conversation history** | Full UI with scroll | Full UI with scroll | Text thread (messy) |
+| **Learning curve** | Low (Python) | High (TypeScript + React) | Medium (bot SDK) |
+| **Deploy complexity** | 5 min (Streamlit Cloud) | 3 hrs (Vercel + Railway) | 1 hr (webhook setup) |
+| **Future scalability** | 100s users | 1000s users | 1000s users |
+| **Wife friction** | Low (click email link) | Low (click email link) | Zero (already has app) |
+
+**Winner for MVP:** Streamlit Dashboard (wins 8/12 factors)
+
+---
+
+### Implementation Timeline
+
+**MVP (Streamlit + Email):**
+```
+Day 1 (4 hours):
+- Create conversations + conversation_tokens tables (15 min)
+- Build Streamlit chat dashboard (2 hours)
+  - Magic link validation
+  - Chat UI with st.chat_message()
+  - Claude API integration
+  - Conversation persistence
+- Test locally (30 min)
+- Deploy to Streamlit Cloud (15 min)
+- Update n8n workflow for email + magic link (45 min)
+- End-to-end test (15 min)
+
+Day 2:
+- Send first suggestion email
+- Wife tests dashboard
+- Collect feedback
+- Iterate!
+
+Weeks 2-4:
+- Refine Claude prompts based on feedback
+- Add features (photos, maps, rating buttons in dashboard)
+- Improve suggestions quality
+```
+
+**v2 (React + FastAPI - Optional, only if needed):**
+```
+Later (if Streamlit UX becomes limiting):
+- Week 1: Build React frontend with shadcn/ui (12 hours)
+- Week 2: Build FastAPI backend with WebSockets (8 hours)
+- Week 3: Deploy, test, migrate (5 hours)
+- Total: ~25 hours (but with validated concept and real usage data)
+```
+
+---
+
+### Magic Link Security Architecture
+
+**How it works:**
+1. **n8n generates unique token:**
+   ```javascript
+   const convId = `${date}-${crypto.randomBytes(16).toString('hex')}`;
+   // Example: "2025-11-02-a3f8e9c1d4b2..."
+   ```
+
+2. **Store in Supabase:**
+   ```sql
+   INSERT INTO conversation_tokens (conv_id, expires_at)
+   VALUES ('2025-11-02-a3f8...', NOW() + INTERVAL '7 days');
+   ```
+
+3. **Email contains link:**
+   ```
+   https://weekend-planner.streamlit.app?conv_id=2025-11-02-a3f8...
+   ```
+
+4. **Dashboard validates:**
+   ```python
+   # Check token exists and hasn't expired
+   token = supabase.table('conversation_tokens')
+       .select('*')
+       .eq('conv_id', conv_id)
+       .gte('expires_at', 'now()')
+       .execute()
+
+   if not token.data:
+       st.error("Invalid or expired link")
+       st.stop()
+   ```
+
+**Security features:**
+- ✅ Cryptographically random tokens (can't guess)
+- ✅ Time-limited (7 day expiration)
+- ✅ One-time use per suggestion batch
+- ✅ No passwords to remember
+- ✅ Can revoke tokens in database
+- ✅ HTTPS enforced (Streamlit Cloud)
+
+---
+
+### Database Schema Changes
+
+**New tables:**
+
+```sql
+-- Conversation storage
+CREATE TABLE conversations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  conversation_id TEXT NOT NULL,      -- Links to magic link token
+  role TEXT NOT NULL,                  -- 'user' or 'assistant'
+  content TEXT NOT NULL,               -- Message text
+  metadata JSONB,                      -- Structured data (activity IDs, actions)
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+
+  INDEX idx_conv_id (conversation_id),
+  INDEX idx_created_at (created_at)
+);
+
+-- Magic link tokens
+CREATE TABLE conversation_tokens (
+  conv_id TEXT PRIMARY KEY,            -- Unique token
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  expires_at TIMESTAMPTZ NOT NULL,     -- 7 days from creation
+
+  INDEX idx_expires (expires_at)
+);
+```
+
+**Why JSONB metadata:**
+- Store structured actions (e.g., `{"type": "update_rating", "activity_id": 123}`)
+- Enable Claude to take actions in conversation
+- Query later for analytics ("How often do users rate activities?")
+
+---
+
+### Migration Path (Streamlit → React)
+
+**If we need to upgrade later:**
+
+**What stays the same:**
+- ✅ Email workflow (n8n)
+- ✅ Database schema (conversations, conversation_tokens)
+- ✅ Magic link system (same token format)
+- ✅ Claude API integration (same prompts, same tools)
+- ✅ Supabase queries (same SQL)
+
+**What changes:**
+- ⚠️ Dashboard UI (Streamlit → React)
+- ⚠️ Backend API (Streamlit server → FastAPI)
+- ⚠️ Deployment (Streamlit Cloud → Vercel + Railway)
+
+**Migration steps:**
+1. Build React frontend alongside Streamlit (both can coexist)
+2. Test React version with same magic links
+3. Update n8n to point to React URL
+4. Deprecate Streamlit after validation
+5. Total migration time: ~5 hours (since 90% is reusable)
+
+**Key insight:** Dashboard is **swappable view layer**. Backend logic (Claude, Supabase, magic links) is platform-agnostic.
+
+---
+
+### Alternatives Considered
+
+**1. WhatsApp Bot Only (original plan)**
+- Pro: Zero app friction, push notifications built-in
+- Con: Blocked by Meta approval process
+- Con: Platform lock-in (can't easily switch to Telegram/Signal)
+- Con: Limited UI (text only, no rich visualizations)
+- **Verdict:** Good for v1 but blocked, inferior architecture
+
+**2. Telegram Bot**
+- Pro: Easy setup (15 minutes via @BotFather)
+- Pro: Free forever, no approval process
+- Con: Requires installing Telegram app (wife doesn't have it)
+- Con: Platform lock-in
+- Con: Limited UI
+- **Verdict:** Would work but requires new app install
+
+**3. Signal Bot**
+- Pro: Privacy-focused
+- Con: No official bot API (requires signal-cli workarounds)
+- Con: Complex setup (2-3 hours)
+- Con: Requires spare phone number
+- Con: n8n integration is community-built (less reliable)
+- **Verdict:** Too complex for marginal benefit
+
+**4. Email Only (replies parsed)**
+- Pro: Zero new apps
+- Pro: Fast setup
+- Con: Email threading is messy (Gmail vs Outlook format differently)
+- Con: NLP parsing of replies is unreliable
+- Con: No visual feedback of what was understood
+- Con: Can't show conversation history cleanly
+- **Verdict:** Close, but dashboard is strictly better
+
+**5. Pure React + FastAPI (no Streamlit)**
+- Pro: Beautiful UI, professional polish
+- Pro: Full design control
+- Con: 5x longer to build (20 hours vs 4 hours)
+- Con: 2-3x more expensive ($20/mo vs $5/mo)
+- Con: Higher risk if wife doesn't use it
+- **Verdict:** Right choice eventually, wrong choice for MVP
+
+---
+
+### Trade-offs
+
+**Choosing Streamlit MVP:**
+
+**Pros:**
+- ✅ **Ship this week** - 4 hours total, not 20 hours
+- ✅ **Validate concept** - Test if wife actually uses it
+- ✅ **Low risk** - Minimal time investment if it fails
+- ✅ **Free hosting** - Streamlit Cloud free tier
+- ✅ **Fast iteration** - Change code, deploy, test (single codebase)
+- ✅ **Rich UI** - Can show photos, maps, buttons, activity details
+- ✅ **Conversation history** - Clean scrollable interface
+- ✅ **Swappable push** - Email now, WhatsApp later (15 min swap)
+- ✅ **Platform-agnostic** - Not locked to any messaging platform
+- ✅ **Learning opportunity** - Build proper conversational AI system
+
+**Cons:**
+- ⚠️ **UI polish** - Functional but not beautiful (⭐⭐⭐ vs ⭐⭐⭐⭐⭐)
+- ⚠️ **Page reloads** - Brief flash on each message (SPA is smoother)
+- ⚠️ **Limited customization** - Can't match exact brand design
+- ⚠️ **Rebuild later?** - If React is needed, invest 5 more hours
+  - BUT: Most code is reusable (Claude prompts, Supabase queries, magic links)
+  - AND: Will have real usage data to inform v2 design
+
+**Reality check:** "Good enough" is actually good enough for audience of 2 (you + wife). Shipping this week > perfect UI in 3 weeks.
+
+---
+
+### Success Metrics
+
+**How we'll know this decision was right:**
+
+**Week 1:**
+- ✅ Dashboard deploys successfully
+- ✅ Magic links work end-to-end
+- ✅ Claude API integration works
+- ✅ Wife can access and use dashboard from phone
+
+**Week 2-4:**
+- ✅ Wife uses it at least once per week
+- ✅ Provides feedback via chat
+- ✅ Conversation persistence works
+- ✅ System learns from feedback (ratings update in Supabase)
+
+**Month 2:**
+- ✅ Suggestions improve based on feedback data
+- ✅ No major UI complaints (Streamlit UX is acceptable)
+- ⚠️ OR: Clear UX pain points identified → justifies React rebuild
+
+**Decision to upgrade to React:**
+- Wife actively uses system ✅
+- AND one of:
+  - UI polish is limiting adoption
+  - Need features Streamlit can't support (real-time, complex interactions)
+  - Scaling beyond family (friends want access)
+
+**Decision to keep Streamlit:**
+- Wife actively uses system ✅
+- UI is functional and acceptable
+- No limiting factors encountered
+- Focus effort on improving suggestions, not UI
+
+---
+
+### Key Learnings
+
+**1. Architecture over implementation**
+- Separating push/dashboard/backend > choosing perfect platform
+- Swappable components > monolithic platform choice
+- Optionality is valuable
+
+**2. Validate before polish**
+- Working system in 4 hours > perfect system in 20 hours
+- Real usage data > assumptions about UX needs
+- Can always rebuild (with data!) if needed
+
+**3. Platform-agnostic design wins**
+- Email → Dashboard today
+- WhatsApp → Same dashboard tomorrow (when Meta unblocks)
+- SMS → Same dashboard next month
+- **All work simultaneously** - different users can use different push mechanisms!
+
+**4. Constraints breed creativity**
+- Meta blocking WhatsApp → forced architectural rethink
+- Result: Superior architecture we wouldn't have designed otherwise
+- Sometimes blockers are blessings
+
+---
+
+### Documentation References
+
+**Implementation guides:**
+- See `building/DASHBOARD-IMPLEMENTATION.md` for step-by-step build guide
+- See `NEXT-STEPS.md` for detailed next actions
+- See `building/PLAN.md` for updated phase breakdown
+
+**Related decisions:**
+- Decision #4: WhatsApp Bot as Primary Interface (2025-10-09) - Superseded by this decision
+- Decision #6: Meta WhatsApp Cloud API (2025-10-09) - Deferred to v2, not blocked anymore
+
+**Updated architecture:**
+- See `.claude/CLAUDE.md` for full system architecture
+- See `START-HERE.md` for current status and next steps
+
+---
+
+*This decision represents a strategic pivot from platform-specific bot to platform-agnostic dashboard architecture. The insight that push mechanism is disposable while dashboard is the product fundamentally changes the design for the better.*

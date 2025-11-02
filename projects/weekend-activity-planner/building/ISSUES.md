@@ -60,7 +60,7 @@ CREATE VIEW recent_visits_with_details AS ...
 
 ---
 
-## ACTIVE
+---
 
 ### Issue #3: Meta Developer Portal Rate Limit
 **Date:** 2025-10-18
@@ -68,11 +68,33 @@ CREATE VIEW recent_visits_with_details AS ...
 **Problem:** Hit Meta/Facebook rate limit when attempting to access https://developers.facebook.com/ to set up WhatsApp Business API
 **Impact:** Cannot proceed with WhatsApp integration until rate limit clears (blocks final 5% of project)
 **Root Cause:** Meta's anti-automation protection triggered by access patterns
-**Solution:** Wait for rate limit to clear (typically hours to 24 hours), then resume setup
-**Workaround:** None available - must wait for Meta to clear the limit
-**Status:** ACTIVE - Waiting for rate limit to clear
-**Timeline:** Should clear within 24 hours (by 2025-10-19)
-**Next Action:** Check https://developers.facebook.com/ periodically; when accessible, continue with WhatsApp setup per `building/session-logs/2025-10-18-whatsapp-integration-started.md`
+**Solution:** Waited ~14 days for rate limit to clear, then successfully accessed portal
+**Status:** RESOLVED (2025-11-01)
+**Outcome:** Portal accessible, able to generate access token successfully
+
+---
+
+## ACTIVE
+
+### Issue #5: WhatsApp Phone Number Registration Error
+**Date:** 2025-11-01
+**Component:** WhatsApp Cloud API Integration (Phone Number Setup)
+**Problem:** Error when trying to register phone number: "There was a problem registering your phone number - This page is not available right now. Please try reloading in a few minutes."
+**Impact:** Cannot complete WhatsApp Business API setup; blocks ability to send/receive messages
+**Root Cause:** Unknown - possibly Meta infrastructure issue, test number already in use, or rate limiting on phone registration attempts
+**Current State:**
+- ✅ Access token generated successfully: `EAAVwdVis5bQBPZBBNYAJOZCFBZAQjSh4xtzQXoDcjjQWgmr4pHJPrPlliUbl61G09NUO7EjXzeYLf1ZC\`
+- ✅ WhatsApp Business Account ID: 1168419218774117
+- ✅ Phone number ID visible: 823614834172144
+- ❌ Phone number registration failing
+**Attempted Solutions:**
+1. Initial page load - failed with error
+**Status:** ACTIVE - Investigating solutions
+**Next Actions:**
+1. Try refreshing page as suggested by error message
+2. Wait 5-10 minutes and retry (temporary Meta infrastructure issue)
+3. Consider using a real phone number instead of Meta's test number
+4. Check Meta Developer console for additional error details
 
 ---
 
