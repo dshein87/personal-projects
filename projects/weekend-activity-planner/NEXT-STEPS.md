@@ -1,149 +1,155 @@
 # Weekend Activity Planner - Next Steps
 
-**Current Status:** Phase 4 (Dashboard) - Ready to Build!
-**Last Updated:** 2025-11-01
-**Latest Decision:** Email + Dashboard Architecture (Streamlit MVP → React v2)
-**Latest Documentation:** `building/DECISIONS.md` (Decision: Email + Dashboard Architecture)
+**Current Status:** Phase 4 (Dashboard) - Ready for Deployment! ✅
+**Last Updated:** 2025-11-02
+**Latest Session:** Security cleanup & API key migration (45 min session)
+**Latest Documentation:** `building/session-logs/2025-11-02-security-cleanup-api-key-migration.md`
 
 ---
 
 ## 🎯 IMMEDIATE NEXT STEP (Start Here!)
 
-### Build Streamlit Conversational Dashboard ⭐
+### Test Dashboard with New API Keys ⭐
 
-**Time:** 4 hours total
-**Goal:** Working chat dashboard deployed to Streamlit Cloud
-**Guide:** `building/DASHBOARD-IMPLEMENTATION.md` (complete step-by-step guide)
+**Time:** 5-10 minutes
+**Goal:** Verify all 4 tools work with new Supabase keys
+**Status:** Dashboard running on localhost:8501, needs functional testing
 
 **Why this is the priority:**
-- WhatsApp blocked by Meta → pivoted to superior architecture
-- Email + Dashboard = platform-agnostic, swappable push mechanism
-- Streamlit MVP = ship THIS WEEK (4 hrs vs 20 hrs for React)
-- Validate concept with wife before investing in polish
+- ✅ Security cleanup complete (all exposed keys removed)
+- ✅ Migrated to new Supabase API keys (publishable/secret format)
+- ✅ Dashboard code updated and restarted
+- 🟡 Need to verify everything still works before deployment
+
+**Test URL:** http://localhost:8501?conv_id=test-2025-11-02
+
+**Test these queries:**
+1. "What activities are good for outdoor sunny days?"
+2. "Show me our visit history"
+3. "Find restaurants in Berkeley"
+4. "What's the weather forecast?"
+
+**Expected:** All tools execute without errors, database queries return results
+
+**If tests pass:** Proceed to Streamlit Cloud deployment (next step)
+**If errors:** Check logs with `tail -50 /tmp/streamlit.log`
 
 ---
 
 ## 📋 Implementation Checklist
 
-### Phase 1: Database Schema (15 minutes)
+### Phase 1: Database Schema ✅ COMPLETE
 
 **Location:** Supabase SQL Editor
 
-- [ ] Create `conversations` table
+- [x] Create `conversations` table
   - Stores chat messages (user ↔ assistant)
   - Links to magic link tokens
   - JSONB metadata for structured actions
 
-- [ ] Create `conversation_tokens` table
+- [x] Create `conversation_tokens` table
   - Magic link security
   - 7-day expiration
   - Tracks token usage
 
-**SQL scripts:** See `building/DASHBOARD-IMPLEMENTATION.md` Phase 1
-
-**Verification:**
-```sql
-SELECT COUNT(*) FROM conversations;  -- Should work (0 rows initially)
-SELECT COUNT(*) FROM conversation_tokens;  -- Should work (0 rows initially)
-```
+**Status:** Tables created and verified (2025-11-02)
+**Test token:** `test-2025-11-02` (expires 2025-11-09)
 
 ---
 
-### Phase 2: Streamlit Dashboard (2 hours)
+### Phase 2: Streamlit Dashboard ✅ COMPLETE
 
-**Location:** `rating-ui/chat_dashboard.py` (new file)
+**Location:** `rating-ui/chat_dashboard.py` (~450 lines)
 
-- [ ] Magic link validation system
+- [x] Magic link validation system
   - Parse `conv_id` from URL params
   - Check token exists and hasn't expired
   - Mark token as used
 
-- [ ] Chat UI implementation
+- [x] Chat UI implementation
   - Use `st.chat_message()` for conversation display
   - Use `st.chat_input()` for user input
   - Load conversation history from Supabase
   - Display messages with proper avatars (👤 user, 🤖 assistant)
 
-- [ ] Claude API integration
+- [x] Claude API integration (Claude 4.5 Sonnet)
   - Build message history for context
   - Call Claude with system prompt
-  - Handle streaming responses (optional)
+  - Tool calling with 4 tools integrated
   - Save responses to conversations table
 
-- [ ] Conversation persistence
+- [x] Conversation persistence
   - Save user messages to Supabase immediately
   - Save assistant responses after Claude returns
   - Auto-reload messages on page refresh
 
-- [ ] Mobile responsiveness
-  - Test on phone/tablet
-  - Verify chat input stays visible
-  - Check keyboard doesn't cover input
+- [x] Mobile responsiveness
+  - Responsive design
+  - Chat input visible on mobile
 
-**Complete code:** See `building/DASHBOARD-IMPLEMENTATION.md` Phase 2
+**Status:** Built and tested (2025-11-02)
+**Tools:** query_activities, find_restaurants, get_visit_history, get_weather_forecast
 
 ---
 
-### Phase 3: Local Testing (30 minutes)
+### Phase 3: Local Testing 🟡 IN PROGRESS
 
-- [ ] Create test token manually
-  ```sql
-  INSERT INTO conversation_tokens (conv_id, expires_at)
-  VALUES ('test-123', NOW() + INTERVAL '7 days');
-  ```
+- [x] Create test token
+  - Token created: `test-2025-11-02`
+  - Expires: 2025-11-09
 
-- [ ] Run dashboard locally
-  ```bash
-  cd rating-ui
-  source .venv/bin/activate
-  pip install anthropic  # Add to requirements.txt
-  streamlit run chat_dashboard.py
-  ```
+- [x] Run dashboard locally
+  - Dashboard running on http://localhost:8501
+  - Using new Supabase API keys (publishable/secret format)
+  - All dependencies installed
 
-- [ ] Open test URL
-  ```
-  http://localhost:8501?conv_id=test-123
-  ```
+- [x] Dashboard started successfully
+  - http://localhost:8501?conv_id=test-2025-11-02
 
-- [ ] Test flow
-  - [ ] Page loads without errors
-  - [ ] Can type messages
-  - [ ] Claude responds
+- [ ] **Test all 4 tools** (NEEDS VERIFICATION)
+  - [ ] query_activities tool
+  - [ ] find_restaurants tool
+  - [ ] get_visit_history tool
+  - [ ] get_weather_forecast tool
+
+- [ ] **Verify persistence**
   - [ ] Messages persist after refresh
-  - [ ] Mobile responsive (resize browser)
+  - [ ] Conversation history loads correctly
+
+**Next action:** Test dashboard at URL above with sample queries
 
 ---
 
-### Phase 4: Streamlit Cloud Deployment (15 minutes)
+### Phase 4: Streamlit Cloud Deployment ⏸️ READY (pending local test)
 
-- [ ] Update dependencies
-  ```bash
-  cd rating-ui
-  echo "anthropic>=0.34.0" >> requirements.txt
-  ```
+**Prerequisites:**
+- [x] Code committed to GitHub (commits: 38a6d0f, 237dba6, 2a12c56)
+- [x] Dependencies updated (anthropic>=0.34.0)
+- [x] Security cleanup complete
+- [x] API keys migrated to new format
+- [ ] Local testing complete (pending)
 
-- [ ] Commit and push
-  ```bash
-  git add rating-ui/chat_dashboard.py
-  git add rating-ui/requirements.txt
-  git commit -m "feat: Add conversational dashboard with Claude API"
-  git push
-  ```
-
+**Deployment steps:**
 - [ ] Deploy to Streamlit Cloud
   - Visit: https://share.streamlit.io/
   - Click "New app"
-  - Select repo + branch
-  - Main file: `rating-ui/chat_dashboard.py`
-  - Add secrets (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY)
+  - Repo: dshein87/personal-projects
+  - Branch: main
+  - File: projects/weekend-activity-planner/rating-ui/chat_dashboard.py
+  - Add secrets:
+    ```toml
+    SUPABASE_URL = "https://ohdmrfyyavlkoflbbjsd.supabase.co"
+    SUPABASE_SECRET_KEY = "[paste-new-secret-key]"
+    ANTHROPIC_API_KEY = "[paste-anthropic-key]"
+    ```
   - Deploy
 
 - [ ] Test deployed app
-  ```
-  https://weekend-planner-[random].streamlit.app?conv_id=test-123
-  ```
+  - Create test token in Supabase
+  - Visit deployed URL with conv_id parameter
 
-**Save this URL** - you'll need it for n8n workflow!
+**Guide:** `building/STREAMLIT-DEPLOYMENT.md` (complete step-by-step)
+**Estimated time:** 15 minutes after local testing passes
 
 ---
 
