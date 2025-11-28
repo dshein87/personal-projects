@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/dshein/.claude/**)",
+      "WebSearch",
+      "WebFetch(domain:gizin.co.jp)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:claudelog.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(awk:*)",
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      "Bash(echo:*)",
+      "Bash(npx:*)",
+      "Read(//Users/dshein/Library/**)",
+      "Bash(cat:*)",
+      "Read(//Users/dshein/.config/claude/**)",
+      "Read(//Users/dshein/.config/**)",
+      "Read(//Users/dshein/**)"
+    ],
+    "deny": [],
+    "ask": []
+  },
+  "enableAllProjectMcpServers": false,
+  "outputStyle": "Explanatory"
+}

@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(claude --version)",
+      "Bash(npm update:*)",
+      "Read(//Users/dshein/.claude/**)",
+      "Read(//Users/dshein/Library/Application Support/Cursor/**)",
+      "Read(//Applications/**)",
+      "Bash(softwareupdate:*)",
+      "Bash(brew link:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(awk:*)",
+      "Bash(git commit:*)",
+      "Bash(git pull:*)",
+      "Bash(git push:*)",
+      "Read(//Users/dshein/Downloads/**)",
+      "Bash(jq:*)",
+      "Bash(git add:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(find:*)",
+      "Bash(tree:*)",
+      "Bash(brew install:*)",
+      "Bash(supabase db:*)",
+      "Bash(/opt/homebrew/opt/libpq/bin/psql:*)",
+      "Bash(pip3 install:*)",
+      "Bash(python3:*)",
+      "Bash(source:*)",
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "WebSearch",
+      "Bash(sw_vers:*)",
+      "Bash(open:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

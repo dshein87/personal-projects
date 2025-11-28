@@ -3,7 +3,7 @@
 --
 -- Focus:
 -- - Celiac-safe options (family member)
--- - Allergen-free options (family member)
+-- - Sesame/cashew/flax-free options (family member)
 -- - Mexican cuisine preference
 -- - Kid-friendly atmosphere
 
@@ -14,7 +14,7 @@
 INSERT INTO restaurants (name, cuisine, description, address, city, zip_code, latitude, longitude, drive_time_minutes, celiac_safe, celiac_notes, sesame_free_options, cashew_free_options, flax_free_options, allergen_notes, kid_friendly, has_kids_menu, high_chairs_available, opening_hours, price_range, avg_meal_cost, yelp_url, google_maps_url, phone, website, notes) VALUES
 
 -- Popular taqueria options
-('Tacos Oscar', 'Mexican', 'Casual taqueria with excellent tacos. Casual taqueria with excellent tacos on Piedmont Ave.', '4038 Piedmont Ave', 'Oakland', '94611', 37.8282, -122.2384, 8, true, 'Corn tortillas are naturally gluten-free. Ask about cross-contamination.', true, true, true, 'Generally allergen-friendly. Avoid salsas with seeds. Ask about specific allergens.', true, false, true, '{"daily": {"open": "11:00", "close": "21:00"}}', '$', 12, NULL, NULL, '(510) 985-7336', NULL, 'Popular neighborhood taqueria with corn tortillas.'),
+('Tacos Oscar', 'Mexican', 'Casual taqueria with excellent tacos. Popular neighborhood spot.', '4038 Piedmont Ave', 'Oakland', '94611', 37.8282, -122.2384, 8, true, 'Corn tortillas are naturally gluten-free. Ask about cross-contamination.', true, true, true, 'Generally allergen-friendly. Avoid salsas with seeds. Ask about specific allergens.', true, false, true, '{"daily": {"open": "11:00", "close": "21:00"}}', '$', 12, NULL, NULL, '(510) 985-7336', NULL, 'Popular neighborhood taqueria with corn tortillas.'),
 
 ('Cholita Linda', 'Mexican', 'Popular Mexican street food with great tacos and agua frescas. Near Heather Farms Park.', '4923 Telegraph Ave', 'Oakland', '94609', 37.8392, -122.2619, 12, true, 'Corn tortillas available. Staff knowledgeable about gluten-free options.', true, true, true, 'Ask about specific allergens in salsas and toppings.', true, false, true, '{"daily": {"open": "11:00", "close": "20:00"}}', '$', 14, 'https://www.yelp.com/biz/cholita-linda-oakland', NULL, '(510) 594-9358', 'https://cholitalinda.com', 'Popular Mexican street food spot in Oakland.'),
 
@@ -99,13 +99,13 @@ BEGIN
     RAISE NOTICE 'TOTAL RESTAURANTS: %', total_count;
     RAISE NOTICE '===========================================';
     RAISE NOTICE '';
-    RAISE NOTICE 'ALLERGEN INFORMATION:';
+    RAISE NOTICE 'IMPORTANT ALLERGEN NOTES:';
     RAISE NOTICE 'Family member: Celiac (gluten-free required)';
     RAISE NOTICE 'Family member: Multiple food allergies';
     RAISE NOTICE '===========================================';
     RAISE NOTICE '';
     RAISE NOTICE 'WARNING: Indian and Burmese cuisines often';
     RAISE NOTICE 'contain cashews and sesame. Always notify';
-    RAISE NOTICE 'servers about all allergies!';
+    RAISE NOTICE 'servers about family allergen requirements!';
     RAISE NOTICE '===========================================';
 END $$;

@@ -173,3 +173,8 @@ projects/Axel Kindergarten Admissions/
 config.local.json
 **/secrets/
 **/.secrets/
+
+# Personal annotations (private family data)
+**/seed-personal-annotations.sql
+**/seed-personal*.sql
+**/personal-*.sql
